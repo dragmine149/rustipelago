@@ -29,7 +29,7 @@ impl GPUIStructHelper for SlotRender {
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
             slot_server: cx
-                .new(|cx| InputState::new(window, cx).placeholder("archipelago.gg:12345")),
+                .new(|cx| InputState::new(window, cx).placeholder("archipelago.gg:38281")),
             slot_name: cx.new(|cx| InputState::new(window, cx).placeholder("slot name")),
         }
     }
