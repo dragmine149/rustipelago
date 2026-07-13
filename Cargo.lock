@@ -5403,10 +5403,15 @@ dependencies = [
 name = "rustipelago_frontend"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "dirs",
  "gpui",
  "gpui-component",
  "gpui-component-assets",
  "gpui_platform",
+ "rand 0.10.2",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
