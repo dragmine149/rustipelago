@@ -7,5 +7,6 @@ anyhow = "1.0.103"
 dirs = "6.0.0"
 rand = "0.10.2"
 rustipelago_frontend = { path = "crates/frontend/" }
+rustipelago_apworlds = { path = "crates/apworlds/" }
 serde = "1.0.228"
 serde_json = "1.0.150"

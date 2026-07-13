@@ -1,0 +1,5 @@
+[package]
+name = "rustipelago_apworlds"
+version = "0.1.0"
+edition = "2024"
+description = "Loading apworlds from disk for other modules to use."

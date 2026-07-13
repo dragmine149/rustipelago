@@ -5400,6 +5400,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustipelago_apworlds"
+version = "0.1.0"
+
+[[package]]
 name = "rustipelago_frontend"
 version = "0.1.0"
 dependencies = [
@@ -5410,6 +5414,7 @@ dependencies = [
  "gpui-component-assets",
  "gpui_platform",
  "rand 0.10.2",
+ "rustipelago_apworlds",
  "serde",
  "serde_json",
 ]

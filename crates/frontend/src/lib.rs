@@ -8,6 +8,7 @@ use gpui::{
 };
 use gpui_component::Root;
 use std::fs;
+pub(crate) mod apworld;
 pub(crate) mod home;
 pub(crate) mod writer;
 
@@ -78,7 +79,7 @@ pub fn main() {
                 }
             });
 
-            let bounds = Bounds::centered(None, size(px(1000.), px(1000.)), cx);
+            let bounds = Bounds::centered(None, size(px(800.), px(600.)), cx);
             cx.open_window(
                 WindowOptions {
                     app_id: Some("Rustipelago".into()),

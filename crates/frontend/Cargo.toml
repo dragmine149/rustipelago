@@ -18,5 +18,6 @@ gpui_platform = {
 anyhow.workspace = true
 dirs.workspace = true
 rand.workspace = true
+rustipelago_apworlds.workspace = true
 serde.workspace = true
 serde_json.workspace = true
