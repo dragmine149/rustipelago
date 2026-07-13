@@ -1,0 +1,8 @@
+[package]
+name = "rustipelago"
+version = "0.1.0"
+edition = "2024"
+description = "rustipelago main entry point"
+
+[dependencies]
+rustipelago_frontend.workspace = true
