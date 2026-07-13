@@ -21,3 +21,4 @@ rand.workspace = true
 rustipelago_apworlds.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+rust-embed = "8.12.0"

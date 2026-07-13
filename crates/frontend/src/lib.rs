@@ -2,11 +2,13 @@ use crate::{
     home::Home,
     writer::{Writer, config::Config},
 };
+use anyhow::anyhow;
 use gpui::{
-    App, AppContext, Bounds, Context, Entity, KeyBinding, SharedString, TitlebarOptions, Window,
-    WindowBounds, WindowOptions, actions, px, size,
+    App, AppContext, AssetSource, Bounds, Context, Entity, KeyBinding, SharedString,
+    TitlebarOptions, Window, WindowBounds, WindowOptions, actions, px, size,
 };
 use gpui_component::Root;
+use rust_embed::RustEmbed;
 use std::fs;
 pub(crate) mod apworld;
 pub(crate) mod home;
@@ -25,11 +27,34 @@ where
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self;
 }
 
+#[derive(RustEmbed)]
+#[folder = "../../assets"]
+#[include = "*"]
+pub struct Assets;
+
+impl AssetSource for Assets {
+    fn load(&self, path: &str) -> gpui::Result<Option<std::borrow::Cow<'static, [u8]>>> {
+        if path.is_empty() {
+            return Ok(None);
+        }
+        Self::get(path)
+            .map(|f| Some(f.data))
+            .ok_or_else(|| anyhow!("could not find asset at path \"{path}\""))
+    }
+
+    fn list(&self, path: &str) -> gpui::Result<Vec<SharedString>> {
+        Ok(Self::iter()
+            .filter_map(|p| p.starts_with(path).then(|| p.into()))
+            .collect())
+    }
+}
+
 actions!([Quit]);
 
 pub fn main() {
     gpui_platform::application()
         .with_assets(gpui_component_assets::Assets)
+        .with_assets(Assets)
         .run(move |cx| {
             gpui_component::init(cx);
             // TODO: Sort out themes.
