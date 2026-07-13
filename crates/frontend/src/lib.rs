@@ -11,6 +11,7 @@ use gpui_component::Root;
 use rust_embed::RustEmbed;
 use std::fs;
 pub(crate) mod apworld;
+pub(crate) mod client;
 pub(crate) mod home;
 pub(crate) mod writer;
 
@@ -107,12 +108,14 @@ pub fn main() {
             let bounds = Bounds::centered(None, size(px(800.), px(600.)), cx);
             cx.open_window(
                 WindowOptions {
-                    app_id: Some("Rustipelago".into()),
+                    app_id: Some(env!("CARGO_PKG_NAME").to_string()),
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
                     titlebar: Some(TitlebarOptions {
                         title: Some(format!("Rustipelago {}", env!("CARGO_PKG_VERSION")).into()),
                         ..Default::default()
                     }),
+
+                    tabbing_identifier: Some(env!("CARGO_PKG_NAME").to_string()),
                     ..Default::default()
                 },
                 |window, cx| {

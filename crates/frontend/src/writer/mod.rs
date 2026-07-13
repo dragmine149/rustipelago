@@ -9,11 +9,13 @@ use std::{
     time::Duration,
 };
 
-use crate::writer::config::Config;
+use crate::writer::{config::Config, slots::Slots};
 pub mod config;
+pub mod slots;
 
 pub(crate) fn init_writers(cx: &mut App, path: &PathBuf) {
     Config::init(cx, &path);
+    Slots::init(cx, &path);
 }
 
 struct WriterHolder<Writer>

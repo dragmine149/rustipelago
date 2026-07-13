@@ -5,7 +5,7 @@ use gpui::{
 use gpui_component::{Icon, IconName, Sizable, button::Button, label::Label, v_flex};
 use rustipelago_apworlds::APWorld;
 
-use crate::Assets;
+use crate::{Assets, client::open_client};
 
 pub(crate) struct APWorldCard {
     pub world_info: APWorld,
@@ -46,6 +46,7 @@ impl Render for APWorldCard {
             )
             .on_click(cx.listener(|this, ev, win, cx| {
                 println!("Clicked world: {}", this.world_info.name);
+                open_client(this.world_info.clone(), win, cx).unwrap();
             }))
             .size_40()
         // .aspect_square()
