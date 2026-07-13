@@ -4,7 +4,7 @@ use gpui::{
     px,
 };
 use gpui_component::{
-    ActiveTheme,
+    ActiveTheme, Icon, IconName,
     button::Button,
     cyan_950, green, green_950, h_flex,
     input::{Input, InputState},
@@ -22,32 +22,53 @@ use crate::{
 };
 
 pub struct SlotRender {
+    slot_search: Entity<InputState>,
     slot_server: Entity<InputState>,
     slot_name: Entity<InputState>,
 }
 impl GPUIStructHelper for SlotRender {
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self {
+            slot_search: cx.new(|cx| {
+                let is = InputState::new(window, cx).placeholder("Find Slot");
+                is.focus(window, cx);
+                is
+            }),
             slot_server: cx
-                .new(|cx| InputState::new(window, cx).placeholder("archipelago.gg:38281")),
+                .new(|cx| InputState::new(window, cx).default_value("archipelago.gg:38281")),
             slot_name: cx.new(|cx| InputState::new(window, cx).placeholder("slot name")),
         }
     }
 }
 impl Render for SlotRender {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let search_value = self
+            .slot_search
+            .read_with(cx, |search, _| search.value())
+            .to_string()
+            .to_lowercase();
         let mut slots = Slots::get_copy(cx).slots;
         slots.sort_by(|a, b| a.accessed.cmp(&b.accessed));
+        // println!("{:?}", slots);
 
         v_flex()
             .size_full()
+            .child(Input::new(&self.slot_search).prefix(Icon::new(IconName::Search)))
             .child(
                 v_flex()
                     .size_full()
                     .id("SlotList")
                     .overflow_y_scroll()
                     .overflow_y_scrollbar()
-                    .children(slots.iter().map(|slot| cx.new(|cx| slot.clone()))),
+                    .children(
+                        slots
+                            .iter()
+                            .filter(|slot| {
+                                slot.name.to_lowercase().contains(&search_value)
+                                    || slot.alias.to_lowercase().contains(&search_value)
+                            })
+                            .map(|slot| cx.new(|cx| slot.clone())),
+                    ),
             )
             .child(
                 h_flex()
@@ -91,7 +112,7 @@ impl Render for Slot {
                         })
                         .text_xl(),
                     )
-                    .child(Label::new(self.server.clone())),
+                    .child(Label::new(self.server.clone()).italic()),
             )
             .child(
                 div()
@@ -109,5 +130,8 @@ impl Render for Slot {
                         self.get_completion_percent() as f32,
                     ))),
             )
+            .on_click(cx.listener(|this, ev, win, cx| {
+                win.remove_window();
+            }))
     }
 }
