@@ -3,17 +3,22 @@ use gpui::{
     StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
 };
 use gpui_component::{
-    ActiveTheme, Icon, IconName, Sizable, h_flex,
+    ActiveTheme, Icon, IconName, Sizable,
+    button::Button,
+    h_flex,
     input::{Input, InputState},
     label::Label,
     scroll::ScrollableElement,
 };
+use rustipelago_apworlds::{CardType, CardTypeIter};
+use strum::IntoEnumIterator;
 
 use crate::{GPUIStructHelper, apworld::APWorldCard};
 
 pub(crate) struct Home {
     search: Entity<InputState>,
     cards: Vec<Entity<APWorldCard>>,
+    filter: Option<CardType>,
 }
 
 impl GPUIStructHelper for Home {
@@ -28,6 +33,7 @@ impl GPUIStructHelper for Home {
                 .iter()
                 .map(|world| APWorldCard::view(world.clone(), window, cx))
                 .collect(),
+            filter: None,
         }
     }
 }
@@ -40,6 +46,7 @@ impl Render for Home {
             .to_string();
 
         div()
+            .size_full()
             .child(
                 div().h(px(50.)).child(
                     Input::new(&self.search)
@@ -87,24 +94,49 @@ impl Render for Home {
                     .pb_5(),
             )
             .child(
-                div().child(Label::new("Worlds")).child(
-                    h_flex()
-                        .id("apworld_list")
-                        .children(
-                            self.cards
-                                .iter()
-                                .filter(|card| {
-                                    card.read_with(cx, |c, _| {
-                                        c.world_info.name.contains(&search_value)
+                div()
+                    .w_full()
+                    .child(Label::new("Cards"))
+                    .child(
+                        h_flex()
+                            .p_2()
+                            .gap_1()
+                            .w_full()
+                            .child(Button::new("all").label("All").rounded_lg().on_click(
+                                cx.listener(|this, _, _, _| {
+                                    this.filter = None;
+                                }),
+                            ))
+                            .children(CardType::iter().map(|card| {
+                                Button::new(card.to_string())
+                                    .label(card.to_string())
+                                    .rounded_lg()
+                                    .on_click(cx.listener(move |this, _, _, _| {
+                                        this.filter = Some(card.clone());
+                                    }))
+                            })),
+                    )
+                    .child(
+                        h_flex()
+                            .id("card_list")
+                            .children(
+                                self.cards
+                                    .iter()
+                                    .filter(|card| {
+                                        card.read_with(cx, |c, _| {
+                                            c.world_info.name.contains(&search_value)
+                                                && self.filter.as_ref().map_or(true, |filter| {
+                                                    &c.world_info.card_type == filter
+                                                })
+                                        })
                                     })
-                                })
-                                .cloned(),
-                        )
-                        .items_center()
-                        .size_full()
-                        .overflow_scroll()
-                        .overflow_scrollbar(),
-                ),
+                                    .cloned(),
+                            )
+                            .items_center()
+                            .size_full()
+                            .overflow_scroll()
+                            .overflow_scrollbar(),
+                    ),
             )
     }
 }

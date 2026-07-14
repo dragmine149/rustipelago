@@ -10,3 +10,4 @@ rustipelago_frontend = { path = "crates/frontend/" }
 rustipelago_apworlds = { path = "crates/apworlds/" }
 serde = "1.0.228"
 serde_json = "1.0.150"
+strum = "0.28.0"

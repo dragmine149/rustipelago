@@ -3,18 +3,18 @@ use gpui::{
     Render, RenderImage, Styled, StyledImage, SvgRenderer, Window, div, img,
 };
 use gpui_component::{Icon, IconName, Sizable, button::Button, label::Label, v_flex};
-use rustipelago_apworlds::APWorld;
+use rustipelago_apworlds::ApCard;
 
 use crate::{Assets, client::open_client};
 
 pub(crate) struct APWorldCard {
-    pub world_info: APWorld,
+    pub world_info: ApCard,
 }
 impl APWorldCard {
-    pub fn view(world: APWorld, window: &mut Window, cx: &mut App) -> Entity<Self> {
+    pub fn view(world: ApCard, window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(world, window, cx))
     }
-    fn new(world: APWorld, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    fn new(world: ApCard, window: &mut Window, cx: &mut Context<Self>) -> Self {
         Self { world_info: world }
     }
 }

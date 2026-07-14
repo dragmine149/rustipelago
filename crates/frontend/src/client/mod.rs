@@ -2,7 +2,7 @@ use gpui::{
     App, AppContext, Bounds, TitlebarOptions, Window, WindowBounds, WindowOptions, px, size,
 };
 use gpui_component::Root;
-use rustipelago_apworlds::APWorld;
+use rustipelago_apworlds::ApCard;
 
 use crate::{GPUIStructHelper, client::slots::SlotRender};
 
@@ -11,7 +11,7 @@ pub(crate) mod slots;
 pub(crate) mod ui;
 
 pub(crate) fn open_client(
-    client: APWorld,
+    client: ApCard,
     window: &mut Window,
     cx: &mut App,
 ) -> Result<gpui::WindowHandle<Root>, anyhow::Error> {
