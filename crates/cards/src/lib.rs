@@ -1,3 +1,5 @@
+use crate::default_cards::get_default_cards;
+use std::path::PathBuf;
 use strum_macros::{Display, EnumIter};
 
 pub mod cards;
@@ -21,7 +23,21 @@ pub struct ApCard {
     pub card_type: CardType,
 }
 
-// pub fn load_apworlds(archipelago_dir: PathBuf) {}
+pub fn load_apworlds(archipelago_dir: PathBuf) -> Vec<ApCard> {
+    let mut worlds = vec![];
+}
+
+fn load_installed_apworlds(archipelago_dir: PathBuf) {
+    let world_folder = archipelago_dir.join("worlds");
+
+    let walkdir = walkdir::WalkDir::new(world_folder);
+    for world in walkdir.into_iter() {
+        let Ok(world) = world else {
+            eprintln!("Failed to load apworld {}", world);
+            continue;
+        };
+    }
+}
 
 pub fn load_dummy_worlds() -> Vec<ApCard> {
     [

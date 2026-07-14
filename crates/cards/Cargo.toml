@@ -7,3 +7,5 @@ description = "Loading apworlds from disk for other modules to use."
 [dependencies]
 strum.workspace = true
 strum_macros = "0.28.0"
+walkdir.workspace = true
+rustipelago_backend.workspace = true

@@ -84,8 +84,8 @@ impl Render for Home {
                                     .iter()
                                     .filter(|card| {
                                         card.read_with(cx, |c, _| {
-                                            c.world_info.favourite
-                                                && c.world_info.name.contains(&search_value)
+                                            // c.world_info.favourite &&
+                                            c.world_info.name.contains(&search_value) && false
                                         })
                                     })
                                     .cloned(),

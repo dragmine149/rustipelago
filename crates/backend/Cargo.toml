@@ -7,7 +7,9 @@ description = "Backend functions for rutipelago application"
 [dependencies]
 tokio = "1.52.3"
 reqwest = "0.13.4"
-anyhow = "1.0.103"
+anyhow.workspace = true
 ghgrab = "2.0.1"
 zip = "8.6.0"
-walkdir = "2.5.0"
+walkdir.workspace = true
+rand.workspace = true
+# rustipelago_apworlds.workspace = true
