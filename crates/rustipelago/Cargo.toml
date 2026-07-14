@@ -6,3 +6,4 @@ description = "rustipelago main entry point"
 
 [dependencies]
 rustipelago_frontend.workspace = true
+dirs.workspace = true

@@ -9,7 +9,7 @@ use gpui::{
 };
 use gpui_component::Root;
 use rust_embed::RustEmbed;
-use std::fs;
+use std::{fs, path::PathBuf};
 pub(crate) mod apworld;
 pub(crate) mod client;
 pub(crate) mod home;
@@ -52,7 +52,7 @@ impl AssetSource for Assets {
 
 actions!([Quit]);
 
-pub fn main() {
+pub fn main(config_dir: PathBuf, internal_dir: PathBuf) {
     gpui_platform::application()
         .with_assets(gpui_component_assets::Assets)
         .with_assets(Assets)
@@ -61,19 +61,11 @@ pub fn main() {
             // TODO: Sort out themes.
             gpui_component::Theme::change(gpui_component::ThemeMode::Dark, None, cx);
 
-            // we can... just "borrow" that dir as all the config is there anyway.
-            let config_dir = dirs::data_dir()
-                .expect("Failed to find data dir.")
-                .join("Archipelago");
             writer::init_writers(cx, &config_dir);
 
-            let theme_folder = config_dir.join("Themes");
+            let theme_folder = internal_dir.join("Themes");
             if !theme_folder.exists() {
-                // TODO: Should we not error here?
-                // TODO: Add info file.
-                fs::create_dir(&theme_folder).expect("Faailed to create theme folder");
-                // fs::write(theme_folder.join("rustipelago.readme"), "")
-                //     .expect("Failed to write hello message");
+                let _ = fs::create_dir(&theme_folder);
             }
 
             _ = gpui_component::ThemeRegistry::watch_dir(theme_folder.clone(), cx, move |cx| {

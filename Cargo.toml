@@ -8,6 +8,7 @@ dirs = "6.0.0"
 rand = "0.10.2"
 rustipelago_frontend = { path = "crates/frontend/" }
 rustipelago_apworlds = { path = "crates/cards/" }
+rustipelago_backend = { path = "crates/backend/" }
 serde = "1.0.228"
 serde_json = "1.0.150"
 strum = "0.28.0"
