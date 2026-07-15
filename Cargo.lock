@@ -5875,6 +5875,8 @@ dependencies = [
  "rustls 0.23.41",
  "rustls-pki-types",
  "rustls-platform-verifier",
+ "serde",
+ "serde_json",
  "sync_wrapper 1.0.2",
  "tokio",
  "tokio-rustls 0.26.4",
@@ -6085,16 +6087,19 @@ name = "rustipelago"
 version = "0.1.0"
 dependencies = [
  "dirs",
+ "rustipelago_backend",
+ "rustipelago_bridge",
  "rustipelago_frontend",
+ "tokio",
 ]
 
 [[package]]
 name = "rustipelago_apworlds"
 version = "0.1.0"
 dependencies = [
- "rustipelago_backend",
+ "rustipelago_bridge",
+ "rustipelago_schema",
  "strum 0.28.0",
- "strum_macros 0.28.0",
  "walkdir",
 ]
 
@@ -6106,9 +6111,23 @@ dependencies = [
  "ghgrab",
  "rand 0.10.2",
  "reqwest 0.13.4",
+ "rustipelago_bridge",
+ "rustipelago_schema",
+ "serde",
+ "serde_json",
  "tokio",
  "walkdir",
  "zip 8.6.0",
+]
+
+[[package]]
+name = "rustipelago_bridge"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
+ "tokio",
 ]
 
 [[package]]
@@ -6116,6 +6135,7 @@ name = "rustipelago_frontend"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-channel",
  "dirs",
  "gpui",
  "gpui-component",
@@ -6124,9 +6144,20 @@ dependencies = [
  "rand 0.10.2",
  "rust-embed",
  "rustipelago_apworlds",
+ "rustipelago_bridge",
+ "rustipelago_schema",
  "serde",
  "serde_json",
  "strum 0.28.0",
+ "tokio",
+]
+
+[[package]]
+name = "rustipelago_schema"
+version = "0.1.0"
+dependencies = [
+ "strum 0.28.0",
+ "strum_macros 0.28.0",
 ]
 
 [[package]]

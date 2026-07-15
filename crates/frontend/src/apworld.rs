@@ -3,7 +3,7 @@ use gpui::{
     Render, RenderImage, Styled, StyledImage, SvgRenderer, Window, div, img,
 };
 use gpui_component::{Icon, IconName, Sizable, button::Button, label::Label, v_flex};
-use rustipelago_apworlds::ApCard;
+use rustipelago_schema::archipelago::ApCard;
 
 use crate::{Assets, client::open_client};
 

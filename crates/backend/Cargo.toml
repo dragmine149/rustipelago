@@ -1,15 +1,17 @@
 [package]
 name = "rustipelago_backend"
-version = "0.1.0"
-edition = "2024"
-description = "Backend functions for rutipelago application"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
-tokio = "1.52.3"
-reqwest = "0.13.4"
 anyhow.workspace = true
 ghgrab = "2.0.1"
-zip = "8.6.0"
-walkdir.workspace = true
 rand.workspace = true
-# rustipelago_apworlds.workspace = true
+reqwest = { version = "0.13.4", features = ["json"] }
+rustipelago_bridge.workspace = true
+rustipelago_schema.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = "1.52.3"
+walkdir.workspace = true
+zip = "8.6.0"

@@ -1,10 +1,17 @@
 use anyhow::anyhow;
 use rand::RngExt;
+use rustipelago_schema::archipelago::ApCard;
 use std::{fs::File, path::PathBuf};
 use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
 
-pub fn write_apworld(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()> {
+pub fn read(world: PathBuf) -> ApCard {
+    ApCard {
+        ..Default::default()
+    }
+}
+
+pub fn write(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()> {
     let zip_file = PathBuf::from(format!(
         "/tmp/rustipelago/.{}.apworld",
         rand::rng().sample(rand::distr::Alphabetic) as char

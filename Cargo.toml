@@ -2,14 +2,25 @@
 resolver = "3"
 members = ["crates/*"]
 
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
 [workspace.dependencies]
 anyhow = "1.0.103"
 dirs = "6.0.0"
 rand = "0.10.2"
-rustipelago_frontend = { path = "crates/frontend/" }
 rustipelago_apworlds = { path = "crates/cards/" }
 rustipelago_backend = { path = "crates/backend/" }
+rustipelago_bridge = { path = "crates/bridge/" }
+rustipelago_frontend = { path = "crates/frontend/" }
+rustipelago_schema = { path = "crates/schema/" }
 serde = "1.0.228"
 serde_json = "1.0.150"
 strum = "0.28.0"
+strum_macros = "0.28.0"
+tokio = {
+  version = "1.52.3",
+  features = ["macros", "net", "rt", "rt-multi-thread", "sync"]
+}
 walkdir = "2.5.0"

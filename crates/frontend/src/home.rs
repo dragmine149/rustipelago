@@ -1,28 +1,79 @@
 use gpui::{
-    AppContext, Context, Entity, InteractiveElement, IntoElement, ParentElement, Render,
-    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, px,
+    AnyWindowHandle, App, AppContext, Context, Entity, InteractiveElement, IntoElement,
+    ParentElement, Render, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
+    px,
 };
 use gpui_component::{
-    ActiveTheme, Icon, IconName, Sizable,
+    ActiveTheme, Icon, IconName, Root, Sizable, WindowExt,
     button::Button,
     h_flex,
     input::{Input, InputState},
     label::Label,
     scroll::ScrollableElement,
 };
-use rustipelago_apworlds::{CardType, CardTypeIter};
+use rustipelago_bridge::{BackendSender, FrontendReceiver, MessageToBackend};
+use rustipelago_schema::archipelago::CardType;
 use strum::IntoEnumIterator;
 
-use crate::{GPUIStructHelper, apworld::APWorldCard};
+use crate::{GPUIStructHelper, apworld::APWorldCard, thread_to_main};
 
 pub(crate) struct Home {
     search: Entity<InputState>,
     cards: Vec<Entity<APWorldCard>>,
     filter: Option<CardType>,
+
+    backend_sender: BackendSender,
+    main_window: AnyWindowHandle,
 }
 
-impl GPUIStructHelper for Home {
-    fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+impl Home {
+    pub fn view(
+        window: &mut Window,
+        cx: &mut App,
+        frontend_receiver: FrontendReceiver,
+        backend_sender: BackendSender,
+    ) -> Entity<Self> {
+        cx.new(|cx| Self::new(window, cx, frontend_receiver, backend_sender))
+    }
+    fn new(
+        window: &mut Window,
+        cx: &mut Context<Self>,
+        frontend_receiver: FrontendReceiver,
+        backend_sender: BackendSender,
+    ) -> Self {
+        thread_to_main(cx, frontend_receiver.receiver, async |this, cx, rx| {
+            println!("Waiting for message");
+            while let Ok(msg) = rx.recv().await {
+                match msg {
+                    rustipelago_bridge::MessageToFrontend::ReadFailed { path, error } => todo!(),
+                    rustipelago_bridge::MessageToFrontend::ReqwestFailed { url, error } => todo!(),
+                    rustipelago_bridge::MessageToFrontend::LauncherUpdate { new_version } => {
+                        if let Some(version) = new_version {
+                            this.update(cx, |this, cx| {
+                                cx.update_window(this.main_window, |_, win, cx| {
+                                    let notify_msg = format!("New update available!\nCurrent version: {}, New version: {}", env!("CARGO_PKG_VERSION"), version);
+                                    win.push_notification(notify_msg, cx);
+                                })
+                            });
+                            // cx.
+                            // cx.update(|cx| {
+                            //     window.push_notification(
+                            //         format!("New update available! Version {}", version),
+                            //         cx,
+                            //     )
+                            // });
+                            println!("Update!");
+                        }
+                    }
+                }
+            }
+        })
+        .detach();
+
+        println!("sending update check");
+        backend_sender.send(MessageToBackend::CheckLauncherUpdate);
+        println!("update check sent");
+
         Self {
             search: cx.new(|cx| {
                 let is = InputState::new(window, cx).placeholder("Search");
@@ -34,6 +85,9 @@ impl GPUIStructHelper for Home {
                 .map(|world| APWorldCard::view(world.clone(), window, cx))
                 .collect(),
             filter: None,
+
+            backend_sender,
+            main_window: window.window_handle(),
         }
     }
 }
@@ -45,6 +99,7 @@ impl Render for Home {
             .read_with(cx, |search, _| search.value())
             .to_string();
 
+        let notifications = Root::render_notification_layer(window, cx);
         div()
             .size_full()
             .child(
@@ -138,5 +193,6 @@ impl Render for Home {
                             .overflow_scrollbar(),
                     ),
             )
+            .children(notifications)
     }
 }

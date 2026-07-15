@@ -50,7 +50,7 @@ async fn gh_folder(github: String, world_name: String, worlds_dir: PathBuf) -> a
         .download_items(&world_data, "", |progress| println!("{}", progress))
         .await?;
 
-    apworld::write::write_apworld(
+    apworld::write(
         dest_folder,
         worlds_dir.join(format!("{world_name}.apworld")),
     )

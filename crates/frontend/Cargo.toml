@@ -1,8 +1,7 @@
 [package]
 name = "rustipelago_frontend"
-version = "0.1.0"
-edition = "2024"
-description = "GUI for rustipelago"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
 gpui = { git = "https://github.com/zed-industries/zed" }
@@ -16,10 +15,14 @@ gpui_platform = {
 }
 
 anyhow.workspace = true
+async-channel = "2.5.0"
 dirs.workspace = true
 rand.workspace = true
+rust-embed = "8.12.0"
 rustipelago_apworlds.workspace = true
+rustipelago_bridge.workspace = true
+rustipelago_schema.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-rust-embed = "8.12.0"
 strum.workspace = true
+tokio.workspace = true

@@ -4,12 +4,13 @@ use crate::{
 };
 use anyhow::anyhow;
 use gpui::{
-    App, AppContext, AssetSource, Bounds, Context, Entity, KeyBinding, SharedString,
-    TitlebarOptions, Window, WindowBounds, WindowOptions, actions, px, size,
+    App, AppContext, AssetSource, AsyncApp, Bounds, Context, Entity, KeyBinding, SharedString,
+    Task, TitlebarOptions, WeakEntity, Window, WindowBounds, WindowOptions, actions, px, size,
 };
 use gpui_component::Root;
 use rust_embed::RustEmbed;
-use std::{fs, path::PathBuf};
+use rustipelago_bridge::{BackendSender, FrontendReceiver, FrontendSender};
+use std::{fs, path::PathBuf, sync::mpsc};
 pub(crate) mod apworld;
 pub(crate) mod client;
 pub(crate) mod home;
@@ -26,6 +27,46 @@ where
         cx.new(|cx| Self::new(window, cx))
     }
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self;
+}
+
+/// Move an event from an outsider thread into the inside (gpui)
+///
+/// # Parameters
+/// - cx: Context of the entity for access to said entity. Better than `&mut [gpui::app]`
+/// - receiver: The receiver to forward the messages from.
+/// - f: The callback function, exactly the same as [gpui::Context::spawn] but with the addition of [async_channel::Receiver] dedicated to the input receiver.
+///
+/// # Returns
+/// Same thing as [gpui::Context::spawm] does, and is what expected by the inner function. The background task runs in the background and theres no nice *currently* way to stop that.
+pub fn thread_to_main<AsyncFn, R, T, Cont>(
+    cx: &mut Context<Cont>,
+    receiver: mpsc::Receiver<T>,
+    f: AsyncFn,
+) -> Task<R>
+where
+    AsyncFn:
+        AsyncFnOnce(WeakEntity<Cont>, &mut AsyncApp, async_channel::Receiver<T>) -> R + 'static,
+    R: 'static,
+    T: Send + 'static,
+    Cont: 'static,
+{
+    println!("Setup connections");
+    let (tx, rx) = async_channel::unbounded::<T>();
+    cx.background_spawn(async move {
+        loop {
+            tx.send(
+                receiver
+                    .recv()
+                    .unwrap_or_else(|err| panic!("Failed to get receiver message {}", err)),
+            )
+            .await
+            .expect("Failed to send receiver message");
+        }
+    })
+    .detach();
+
+    println!("Returning spawn obj");
+    cx.spawn(async move |this, cx| f(this, cx, rx).await)
 }
 
 #[derive(RustEmbed)]
@@ -52,7 +93,12 @@ impl AssetSource for Assets {
 
 actions!([Quit]);
 
-pub fn main(config_dir: PathBuf, internal_dir: PathBuf) {
+pub fn main(
+    config_dir: PathBuf,
+    internal_dir: PathBuf,
+    frontend_receiver: FrontendReceiver,
+    backend_sender: BackendSender,
+) {
     gpui_platform::application()
         .with_assets(gpui_component_assets::Assets)
         .with_assets(Assets)
@@ -111,7 +157,7 @@ pub fn main(config_dir: PathBuf, internal_dir: PathBuf) {
                     ..Default::default()
                 },
                 |window, cx| {
-                    let home = Home::view(window, cx);
+                    let home = Home::view(window, cx, frontend_receiver, backend_sender);
                     cx.new(|cx| Root::new(home, window, cx))
                 },
             )

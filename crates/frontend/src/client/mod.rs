@@ -2,7 +2,7 @@ use gpui::{
     App, AppContext, Bounds, TitlebarOptions, Window, WindowBounds, WindowOptions, px, size,
 };
 use gpui_component::Root;
-use rustipelago_apworlds::ApCard;
+use rustipelago_schema::archipelago::ApCard;
 
 use crate::{GPUIStructHelper, client::slots::SlotRender};
 
