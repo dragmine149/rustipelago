@@ -1,4 +1,3 @@
-use rustipelago_bridge::MessageToFrontend;
 use rustipelago_schema::archipelago::{ApCard, CardType};
 
 use crate::default_cards::get_default_cards;
@@ -9,7 +8,8 @@ pub mod default_cards;
 
 pub fn load_apworlds(archipelago_dir: PathBuf) -> Vec<ApCard> {
     let mut worlds = vec![];
-    worlds.extend(get_default_cards().iter().cloned());
+    worlds.extend(get_default_cards());
+    worlds.extend(load_dummy_worlds());
     worlds
 }
 

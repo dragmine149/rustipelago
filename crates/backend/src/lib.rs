@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
-use rustipelago_bridge::{BackendReceiver, BackendSender, FrontendSender, MessageToFrontend};
-use tokio::runtime::Runtime;
-
 use crate::update::check_launcher_update;
+use rustipelago_bridge::{BackendReceiver, FrontendSender, MessageToFrontend};
+use tokio::runtime::Runtime;
 
 pub mod apworld;
 pub mod install;

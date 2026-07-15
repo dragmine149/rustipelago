@@ -1,7 +1,8 @@
+use std::path::PathBuf;
+
 use gpui::{
-    AnyWindowHandle, App, AppContext, Context, Entity, InteractiveElement, IntoElement,
-    ParentElement, Render, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
-    px,
+    AnyWindowHandle, App, AppContext, AsyncApp, Context, Entity, InteractiveElement, IntoElement,
+    ParentElement, Render, StatefulInteractiveElement, Styled, WeakEntity, Window, div, px,
 };
 use gpui_component::{
     ActiveTheme, Icon, IconName, Root, Sizable, WindowExt,
@@ -9,21 +10,23 @@ use gpui_component::{
     h_flex,
     input::{Input, InputState},
     label::Label,
-    notification::Notification,
+    notification::{Notification, NotificationType},
     scroll::ScrollableElement,
 };
 use rustipelago_bridge::{BackendSender, FrontendReceiver, MessageToBackend};
 use rustipelago_schema::archipelago::CardType;
 use strum::IntoEnumIterator;
 
-use crate::{GPUIStructHelper, apworld::APWorldCard, thread_to_main};
+use crate::{apworld::APWorldCard, thread_to_main};
 
+/// Main GPUI page.
 pub(crate) struct Home {
     search: Entity<InputState>,
     cards: Vec<Entity<APWorldCard>>,
     filter: Option<CardType>,
 
     backend_sender: BackendSender,
+    /// Window handler so that we can use it in AsyncApp
     main_window: AnyWindowHandle,
 }
 
@@ -42,45 +45,52 @@ impl Home {
         frontend_receiver: FrontendReceiver,
         backend_sender: BackendSender,
     ) -> Self {
+        // send the receiver off to a detached thread which allows it to be non-blocking.
+        // Does mean we have a bit more trouble with cx but nothing too major.
         thread_to_main(cx, frontend_receiver.receiver, async |this, cx, rx| {
             println!("Waiting for message");
             while let Ok(msg) = rx.recv().await {
                 match msg {
-                    rustipelago_bridge::MessageToFrontend::ReadFailed { path, error } => todo!(),
-                    rustipelago_bridge::MessageToFrontend::ReqwestFailed { url, error } => todo!(),
+                    rustipelago_bridge::MessageToFrontend::ReadFailed { path, error } => {
+                        let _ = Self::weak_notify(
+                            &this,
+                            Notification::new()
+                                .title(format!("Read `{}` error", path.display()))
+                                .message(error.to_string())
+                                .autohide(false)
+                                .with_type(NotificationType::Error),
+                            cx,
+                        );
+                    }
+                    rustipelago_bridge::MessageToFrontend::ReqwestFailed { url, error } => {
+                        let _ = Self::weak_notify(
+                            &this,
+                            Notification::new()
+                                .title(format!("Fetch Failed `{}`", url))
+                                .with_type(NotificationType::Warning)
+                                .message(error.to_string()),
+                            cx,
+                        );
+                    }
                     rustipelago_bridge::MessageToFrontend::LauncherUpdate { new_version } => {
                         if let Some(version) = new_version {
-                            this.update(cx, |this, cx| {
-                                cx.update_window(this.main_window, |_, win, cx| {
-                                    let noti = Notification::new()
-                                        .title("Update")
-                                        .message(format!(
-                                            "New update available! Version: {}",
-                                            version
-                                        ))
-                                        .with_type(
-                                            gpui_component::notification::NotificationType::Info,
+                            let _ = Self::weak_notify(
+                                &this,
+                                Notification::new()
+                                    .title("Update")
+                                    .message(format!("New update available! Version: {}", version))
+                                    .with_type(gpui_component::notification::NotificationType::Info)
+                                    .autohide(false)
+                                    .action(|_, _, cx| {
+                                        Button::new("Update").primary().label("Update").on_click(
+                                            cx.listener(|this, _, win, cx| {
+                                                print!("Start updating launcher somehow");
+                                            }),
                                         )
-                                        .autohide(false)
-                                        .action(|_, win, cx| {
-                                            Button::new("Update")
-                                                .primary()
-                                                .label("Update")
-                                                .on_click(cx.listener(|this, _, win, cx| {
-                                                    print!("Start updating launcher somehow");
-                                                }))
-                                        });
-                                    // let notify_msg = format!("New update available!\nCurrent version: {}, New version: {}", env!("CARGO_PKG_VERSION"), version);
-                                    win.push_notification(noti, cx);
-                                });
-                            });
-                            // cx.
-                            // cx.update(|cx| {
-                            //     window.push_notification(
-                            //         format!("New update available! Version {}", version),
-                            //         cx,
-                            //     )
-                            // });
+                                    }),
+                                cx,
+                            );
+
                             println!("Update!");
                         }
                     }
@@ -89,8 +99,9 @@ impl Home {
         })
         .detach();
 
+        // on app start, update check bc why not.
         println!("sending update check");
-        backend_sender.send(MessageToBackend::CheckLauncherUpdate);
+        let _ = backend_sender.send(MessageToBackend::CheckLauncherUpdate);
         println!("update check sent");
 
         Self {
@@ -99,7 +110,7 @@ impl Home {
                 is.focus(window, cx);
                 is
             }),
-            cards: rustipelago_apworlds::load_dummy_worlds()
+            cards: rustipelago_apworlds::load_apworlds(PathBuf::default())
                 .iter()
                 .map(|world| APWorldCard::view(world.clone(), window, cx))
                 .collect(),
@@ -108,6 +119,29 @@ impl Home {
             backend_sender,
             main_window: window.window_handle(),
         }
+    }
+}
+
+impl Home {
+    /// even even more shorthand for notification.
+    ///
+    /// # Usage
+    /// ```rs
+    /// let _ = Self::weak_notify(this, Notification::new(), cx);
+    /// ```
+    fn weak_notify(
+        this: &WeakEntity<Self>,
+        notification: Notification,
+        cx: &mut AsyncApp,
+    ) -> anyhow::Result<()> {
+        this.update(cx, |this, cx| this.notify(notification, cx))?
+    }
+
+    /// Shorthand for notification, saves repeating it a bit.
+    fn notify(&mut self, notification: Notification, cx: &mut Context<Self>) -> anyhow::Result<()> {
+        cx.update_window(self.main_window, |_, win, cx| {
+            win.push_notification(notification, cx);
+        })
     }
 }
 
@@ -126,11 +160,7 @@ impl Render for Home {
                     Input::new(&self.search)
                         .w_full()
                         .large()
-                        // .with_size(px(100.))
-                        // .h_20()
                         .h_auto()
-                        // .p_0()
-                        // .text_2xl()
                         .prefix(Icon::new(IconName::Search)),
                 ),
             )
@@ -144,13 +174,6 @@ impl Render for Home {
                             .overflow_y_scroll()
                             .overflow_y_scrollbar()
                             .items_center()
-                            // .when_else(
-                            //     self.cards
-                            //         .iter()
-                            //         .any(|card| card.read_with(cx, |c, _| c.world_info.favourite)),
-                            //     |this| this.block(),
-                            //     |this| this.hidden(),
-                            // )
                             .border_1()
                             .border_color(cx.theme().border)
                             .children(
@@ -159,7 +182,8 @@ impl Render for Home {
                                     .filter(|card| {
                                         card.read_with(cx, |c, _| {
                                             // c.world_info.favourite &&
-                                            c.world_info.name.contains(&search_value) && false
+                                            // c.world_info.name.contains(&search_value)
+                                            false
                                         })
                                     })
                                     .cloned(),

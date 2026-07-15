@@ -1,15 +1,9 @@
-use std::{fs::File, path::PathBuf};
-
-use anyhow::anyhow;
-use ghgrab::{
-    download::{self, Downloader},
-    github::{GitHubClient, GitHubUrl, GitTreeEntry, RepoItem},
-};
-use reqwest::Client;
-use walkdir::WalkDir;
-use zip::write::SimpleFileOptions;
-
 use crate::apworld;
+use ghgrab::{
+    download::Downloader,
+    github::{GitHubClient, RepoItem},
+};
+use std::path::PathBuf;
 
 pub enum GithubInstallSource {
     Release,

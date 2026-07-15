@@ -9,13 +9,14 @@ use gpui::{
 };
 use gpui_component::Root;
 use rust_embed::RustEmbed;
-use rustipelago_bridge::{BackendSender, FrontendReceiver, FrontendSender};
+use rustipelago_bridge::{BackendSender, FrontendReceiver};
 use std::{fs, path::PathBuf, sync::mpsc};
 pub(crate) mod apworld;
 pub(crate) mod client;
 pub(crate) mod home;
 pub(crate) mod writer;
 
+/// A trait to skip some of the announces of creating a new entity for a struct all the time.
 pub(crate) trait GPUIStructHelper
 where
     Self: 'static + Sized,
@@ -69,6 +70,7 @@ where
     cx.spawn(async move |this, cx| f(this, cx, rx).await)
 }
 
+/// Holds and loads custom assets.
 #[derive(RustEmbed)]
 #[folder = "../../assets"]
 #[include = "*"]
@@ -129,6 +131,7 @@ pub fn main(
                 gpui_component::Theme::global_mut(cx).apply_config(&theme);
             });
 
+            // TODO: Customise keybinds? *or at least add more*
             cx.on_app_quit(|cx| {
                 Config::force_save(cx);
                 async {}

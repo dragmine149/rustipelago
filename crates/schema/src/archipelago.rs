@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumIter};
 
 #[derive(Clone, EnumIter, Display, PartialEq, Eq)]
@@ -27,5 +28,25 @@ impl Default for ApCard {
             path: String::default(),
             card_type: CardType::Misc,
         }
+    }
+}
+
+/// Information about a given slot.
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct Slot {
+    /// The server address and port number for said slot.
+    pub server: String,
+    pub name: String,
+    pub alias: String,
+    /// Completion of the slot, stored as [checks, total]
+    pub completion: [u64; 2],
+    /// Last time we accessed said slot. Only client-sided though.
+    pub accessed: usize,
+}
+
+impl Slot {
+    /// Return the completion as a percentage.
+    pub fn get_completion_percent(&self) -> f64 {
+        self.completion[0] as f64 / self.completion[1] as f64
     }
 }

@@ -2,7 +2,6 @@ use gpui::{
     App, AppContext, Bounds, TitlebarOptions, Window, WindowBounds, WindowOptions, px, size,
 };
 use gpui_component::Root;
-use rustipelago_schema::archipelago::ApCard;
 
 use crate::{GPUIStructHelper, client::slots::SlotRender};
 
@@ -10,8 +9,8 @@ pub(crate) mod commands;
 pub(crate) mod slots;
 pub(crate) mod ui;
 
-pub(crate) fn open_client(
-    client: ApCard,
+///
+pub(crate) fn slot_management(
     window: &mut Window,
     cx: &mut App,
 ) -> Result<gpui::WindowHandle<Root>, anyhow::Error> {
@@ -19,7 +18,7 @@ pub(crate) fn open_client(
     cx.open_window(
         WindowOptions {
             titlebar: Some(TitlebarOptions {
-                title: Some(client.name.into()),
+                title: Some("Slot Manager".into()),
                 ..Default::default()
             }),
             window_bounds: Some(WindowBounds::Windowed(Bounds::centered(

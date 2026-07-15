@@ -5,13 +5,23 @@
 
 use crate::{ApCard, CardType};
 
-pub fn get_default_cards() -> [ApCard; 1] {
-    [ApCard {
-        icon: None,
-        name: "Install APWorld".to_string(),
-        description: "Install an APWorld to play games not included with archipelago by default."
-            .to_string(),
-        path: String::default(),
-        card_type: CardType::Tool,
-    }]
+pub fn get_default_cards() -> [ApCard; 2] {
+    [
+        ApCard {
+            icon: None,
+            name: "Install APWorld".to_string(),
+            description:
+                "Install an APWorld to play games not included with archipelago by default."
+                    .to_string(),
+            path: String::default(),
+            card_type: CardType::Tool,
+        },
+        ApCard {
+            icon: None,
+            name: "Slot Manager".to_string(),
+            description: "Manage all of the \"local\" slots. (need better description)".to_string(),
+            path: String::default(),
+            card_type: CardType::Tool,
+        },
+    ]
 }

@@ -1,28 +1,15 @@
 use crate::writer::{Save, Writer};
-use gpui::Global;
+use rustipelago_schema::archipelago::Slot;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
-pub struct Slot {
-    pub server: String,
-    pub name: String,
-    pub alias: String,
-    pub completion: [u64; 2],
-    pub accessed: usize,
-}
-
-impl Slot {
-    pub fn get_completion_percent(&self) -> f64 {
-        self.completion[0] as f64 / self.completion[1] as f64
-    }
-}
-
+/// Stores information about all the slots.
+///
+/// The official app doesn't do this, hence we have to do it ourselves. as such can save it however.
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Slots {
     pub slots: Vec<Slot>,
 }
 
-// impl Global for Slots {}
 impl Writer for Slots {
     fn get_name() -> &'static str {
         "Slots"

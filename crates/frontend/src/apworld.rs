@@ -1,3 +1,5 @@
+//! Everything to do with rendering the cards in the UI.
+use crate::client::slot_management;
 use gpui::{
     App, AppContext, Context, Entity, ImageSource, InteractiveElement, IntoElement, ParentElement,
     Render, StatefulInteractiveElement, Styled, Window, img, prelude::FluentBuilder,
@@ -12,7 +14,7 @@ impl APWorldCard {
     pub fn view(world: ApCard, window: &mut Window, cx: &mut App) -> Entity<Self> {
         cx.new(|cx| Self::new(world, window, cx))
     }
-    fn new(world: ApCard, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    fn new(world: ApCard, _window: &mut Window, _cx: &mut Context<Self>) -> Self {
         Self { world_info: world }
     }
 }
@@ -40,9 +42,9 @@ impl Render for APWorldCard {
                         })
                     }),
             )
-            .on_click(cx.listener(|this, ev, win, cx| {
+            .on_click(cx.listener(|this, _, win, cx| {
                 println!("Clicked world: {}", this.world_info.name);
-                open_client(this.world_info.clone(), win, cx).unwrap();
+                slot_management(win, cx).unwrap();
             }))
             .size_40()
         // .aspect_square()

@@ -1,5 +1,4 @@
-use gpui::{App, Global, Task, Window};
-use gpui_component::{WindowExt, notification::NotificationType};
+use gpui::{App, Global, Task};
 use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use std::{

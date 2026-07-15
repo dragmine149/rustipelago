@@ -1,14 +1,11 @@
 use std::{
-    path::{Path, PathBuf},
+    path::Path,
     sync::{
         Arc,
         mpsc::{Receiver, Sender},
     },
 };
-
 use strum_macros::Display;
-
-// use tokio::sync::mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
 
 pub enum MessageToFrontend {
     ReadFailed {
