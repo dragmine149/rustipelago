@@ -5,10 +5,11 @@ use gpui::{
 };
 use gpui_component::{
     ActiveTheme, Icon, IconName, Root, Sizable, WindowExt,
-    button::Button,
+    button::{Button, ButtonVariants},
     h_flex,
     input::{Input, InputState},
     label::Label,
+    notification::Notification,
     scroll::ScrollableElement,
 };
 use rustipelago_bridge::{BackendSender, FrontendReceiver, MessageToBackend};
@@ -51,9 +52,27 @@ impl Home {
                         if let Some(version) = new_version {
                             this.update(cx, |this, cx| {
                                 cx.update_window(this.main_window, |_, win, cx| {
-                                    let notify_msg = format!("New update available!\nCurrent version: {}, New version: {}", env!("CARGO_PKG_VERSION"), version);
-                                    win.push_notification(notify_msg, cx);
-                                })
+                                    let noti = Notification::new()
+                                        .title("Update")
+                                        .message(format!(
+                                            "New update available! Version: {}",
+                                            version
+                                        ))
+                                        .with_type(
+                                            gpui_component::notification::NotificationType::Info,
+                                        )
+                                        .autohide(false)
+                                        .action(|_, win, cx| {
+                                            Button::new("Update")
+                                                .primary()
+                                                .label("Update")
+                                                .on_click(cx.listener(|this, _, win, cx| {
+                                                    print!("Start updating launcher somehow");
+                                                }))
+                                        });
+                                    // let notify_msg = format!("New update available!\nCurrent version: {}, New version: {}", env!("CARGO_PKG_VERSION"), version);
+                                    win.push_notification(noti, cx);
+                                });
                             });
                             // cx.
                             // cx.update(|cx| {
