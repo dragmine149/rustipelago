@@ -9,7 +9,7 @@ use gpui::{
 };
 use gpui_component::Root;
 use rust_embed::RustEmbed;
-use rustipelago_bridge::messages::{MessageToBackend, MessageToCards, MessageToFrontend};
+use rustipelago_bridge::messages::{MessageToBackend, MessageToFrontend};
 use std::{
     fs,
     path::PathBuf,

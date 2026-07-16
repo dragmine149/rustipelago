@@ -19,7 +19,6 @@ async-channel = "2.5.0"
 dirs.workspace = true
 rand.workspace = true
 rust-embed = "8.12.0"
-rustipelago_apworlds.workspace = true
 rustipelago_bridge.workspace = true
 rustipelago_schema.workspace = true
 serde.workspace = true

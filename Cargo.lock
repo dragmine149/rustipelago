@@ -6087,7 +6087,6 @@ name = "rustipelago"
 version = "0.1.0"
 dependencies = [
  "dirs",
- "rustipelago_apworlds",
  "rustipelago_backend",
  "rustipelago_bridge",
  "rustipelago_frontend",
@@ -6095,21 +6094,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustipelago_apworlds"
-version = "0.1.0"
-dependencies = [
- "rustipelago_bridge",
- "rustipelago_schema",
- "strum 0.28.0",
- "tokio",
- "walkdir",
-]
-
-[[package]]
 name = "rustipelago_backend"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dirs",
  "ghgrab",
  "rand 0.10.2",
  "reqwest 0.13.4",
@@ -6127,6 +6116,7 @@ name = "rustipelago_bridge"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "rustipelago_schema",
  "strum 0.28.0",
  "strum_macros 0.28.0",
  "tokio",
@@ -6145,7 +6135,6 @@ dependencies = [
  "gpui_platform",
  "rand 0.10.2",
  "rust-embed",
- "rustipelago_apworlds",
  "rustipelago_bridge",
  "rustipelago_schema",
  "serde",

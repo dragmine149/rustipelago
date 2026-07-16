@@ -95,6 +95,14 @@ impl Home {
                             println!("Update!");
                         }
                     }
+                    MessageToFrontend::CardsLoaded { cards } => {
+                        this.update(cx, |this, cx| {
+                            this.cards = cards
+                                .iter()
+                                .map(|world| APWorldCard::view(world.clone(), cx))
+                                .collect()
+                        });
+                    }
                 }
             }
         })
@@ -104,6 +112,7 @@ impl Home {
         println!("sending update check");
         let _ = backend_sender.send(MessageToBackend::CheckLauncherUpdate);
         println!("update check sent");
+        let _ = backend_sender.send(MessageToBackend::FetchCards);
 
         Self {
             search: cx.new(|cx| {
@@ -111,10 +120,7 @@ impl Home {
                 is.focus(window, cx);
                 is
             }),
-            cards: rustipelago_apworlds::load_apworlds(PathBuf::default())
-                .iter()
-                .map(|world| APWorldCard::view(world.clone(), window, cx))
-                .collect(),
+            cards: vec![],
             filter: None,
 
             backend_sender,

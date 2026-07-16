@@ -1,6 +1,6 @@
 use tokio::runtime::Runtime;
 
-use crate::messages::{MessageToBackend, MessageToCards, MessageToFrontend};
+use crate::messages::{MessageToBackend, MessageToFrontend};
 use std::{
     fmt::Display,
     sync::mpsc::{Receiver, Sender},
@@ -30,7 +30,7 @@ pub trait MessageHandler<S, R> {
         Self: Sized,
     {
         let state = Self::new(sender);
-        runtime.block_on(async move { state.start(receiver).await })
+        runtime.block_on(async move { state.start(receiver).await });
     }
     async fn start(self, receiver: Receiver<R>);
 
@@ -40,11 +40,9 @@ pub trait MessageHandler<S, R> {
 pub fn create_pairs() -> (
     (Sender<MessageToBackend>, Receiver<MessageToBackend>),
     (Sender<MessageToFrontend>, Receiver<MessageToFrontend>),
-    (Sender<MessageToCards>, Receiver<MessageToCards>),
 ) {
     let frontend = std::sync::mpsc::channel();
     let backend = std::sync::mpsc::channel();
-    let cards = std::sync::mpsc::channel();
 
-    (backend, frontend, cards)
+    (backend, frontend)
 }

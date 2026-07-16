@@ -3,9 +3,9 @@
 //!
 //! Additionally, in order to update these cards, the whole application needs to be updated.
 
-use crate::{ApCard, CardType};
+use rustipelago_schema::archipelago::{ApCard, CardType};
 
-pub fn get_default_cards() -> [ApCard; 2] {
+pub(crate) fn get_default_cards() -> [ApCard; 2] {
     [
         ApCard {
             icon: None,
@@ -24,4 +24,24 @@ pub fn get_default_cards() -> [ApCard; 2] {
             card_type: CardType::Tool,
         },
     ]
+}
+
+pub(crate) fn load_dummy_worlds() -> Vec<ApCard> {
+    [
+        ApCard {
+            icon: None,
+            name: "dummy".to_string(),
+            description: "".to_string(),
+            path: "".to_string(),
+            card_type: CardType::Client,
+        },
+        ApCard {
+            icon: None,
+            name: "dummy2".to_string(),
+            description: "".to_string(),
+            path: "".to_string(),
+            card_type: CardType::Client,
+        },
+    ]
+    .to_vec()
 }

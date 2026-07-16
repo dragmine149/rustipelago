@@ -11,10 +11,10 @@ pub(crate) struct APWorldCard {
     pub world_info: ApCard,
 }
 impl APWorldCard {
-    pub fn view(world: ApCard, window: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|cx| Self::new(world, window, cx))
+    pub fn view(world: ApCard, cx: &mut App) -> Entity<Self> {
+        cx.new(|cx| Self::new(world, cx))
     }
-    fn new(world: ApCard, _window: &mut Window, _cx: &mut Context<Self>) -> Self {
+    fn new(world: ApCard, _cx: &mut Context<Self>) -> Self {
         Self { world_info: world }
     }
 }

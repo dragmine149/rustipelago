@@ -1,4 +1,3 @@
-use rustipelago_apworlds::CardData;
 use rustipelago_backend::BackendState;
 use rustipelago_bridge::{MessageHandler, create_pairs};
 
@@ -20,12 +19,6 @@ pub fn main() {
         let runtime = tokio::runtime::Runtime::new().expect("Failed to initialize tokio runtime");
         println!("Starting backend");
         BackendState::setup(runtime, frontend_sender, pairs.0.1);
-    });
-
-    std::thread::spawn(move || {
-        let runtime = tokio::runtime::Runtime::new().expect("Failed to initialize tokio runtime");
-        println!("Starting Cards");
-        CardData::setup(runtime, pairs.1.0, pairs.2.1);
     });
     println!("Starting frontend");
     rustipelago_frontend::main(config_dir, internal_dir, pairs.1.1, pairs.0.0);

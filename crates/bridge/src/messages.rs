@@ -1,3 +1,4 @@
+use rustipelago_schema::archipelago::ApCard;
 use std::{path::Path, sync::Arc};
 use strum_macros::Display;
 
@@ -14,12 +15,14 @@ pub enum MessageToFrontend {
     LauncherUpdate {
         new_version: Option<String>,
     },
+    CardsLoaded {
+        cards: Vec<ApCard>,
+    },
 }
 
 #[derive(Display)]
 pub enum MessageToBackend {
     CheckLauncherUpdate,
+    OpenCard { card_name: String },
+    FetchCards,
 }
-
-#[derive(Display)]
-pub enum MessageToCards {}
