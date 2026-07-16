@@ -1,5 +1,4 @@
-use std::path::PathBuf;
-
+use crate::{apworld::APWorldCard, thread_to_main};
 use gpui::{
     AnyWindowHandle, App, AppContext, AsyncApp, Context, Entity, InteractiveElement, IntoElement,
     ParentElement, Render, StatefulInteractiveElement, Styled, WeakEntity, Window, div, px,
@@ -15,9 +14,8 @@ use gpui_component::{
 };
 use rustipelago_bridge::{BackendSender, FrontendReceiver, MessageToBackend};
 use rustipelago_schema::archipelago::CardType;
+use std::path::PathBuf;
 use strum::IntoEnumIterator;
-
-use crate::{apworld::APWorldCard, thread_to_main};
 
 /// Main GPUI page.
 pub(crate) struct Home {
@@ -223,7 +221,7 @@ impl Render for Home {
                                     .filter(|card| {
                                         card.read_with(cx, |c, _| {
                                             c.world_info.name.contains(&search_value)
-                                                && self.filter.as_ref().map_or(true, |filter| {
+                                                && self.filter.as_ref().is_none_or(|filter| {
                                                     &c.world_info.card_type == filter
                                                 })
                                         })

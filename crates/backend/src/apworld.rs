@@ -5,13 +5,20 @@ use std::{fs::File, path::PathBuf};
 use walkdir::WalkDir;
 use zip::write::SimpleFileOptions;
 
-pub fn read(world: PathBuf) -> ApCard {
-    ApCard {
+/// Read the world data from the file system.
+///
+/// If this returns `None` something failed whilst reading the path and hence this world should be treated like it's corrupted.
+pub fn read(world: PathBuf) -> Option<ApCard> {
+    Some(ApCard {
+        name: world.file_stem()?.to_str()?.to_string(),
         ..Default::default()
-    }
+    })
 }
 
-pub fn write(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()> {
+/// Save a folder of the apworld to the file system.
+///
+/// This is normally a build-from-source option, but as we get worlds via ref we expose this anyway.
+pub fn write_folder(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()> {
     let zip_file = PathBuf::from(format!(
         "/tmp/rustipelago/.{}.apworld",
         rand::rng().sample(rand::distr::Alphabetic) as char
@@ -27,7 +34,9 @@ pub fn write(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()> {
         let entry = match entry_result {
             Ok(entry) => entry,
             Err(e) => {
-                return Err(anyhow!("Error while traversing directory {world_dir:?}: {e}").into());
+                return Err(anyhow!(
+                    "Error while traversing directory {world_dir:?}: {e}"
+                ));
             }
         };
         let path = entry.path();

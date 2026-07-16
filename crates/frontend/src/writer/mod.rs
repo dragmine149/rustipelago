@@ -1,20 +1,15 @@
 use gpui::{App, Global, Task};
 use rand::RngExt;
 use serde::{Deserialize, Serialize};
-use std::{
-    io::Write,
-    path::{Path, PathBuf},
-    sync::Arc,
-    time::Duration,
-};
+use std::{io::Write, path::Path, sync::Arc, time::Duration};
 
 use crate::writer::{config::Config, slots::Slots};
 pub mod config;
 pub mod slots;
 
-pub(crate) fn init_writers(cx: &mut App, path: &PathBuf) {
-    Config::init(cx, &path);
-    Slots::init(cx, &path);
+pub(crate) fn init_writers(cx: &mut App, path: &Path) {
+    Config::init(cx, path);
+    Slots::init(cx, path);
 }
 
 struct WriterHolder<Writer>
@@ -37,7 +32,7 @@ where
     Self:
         std::fmt::Debug + Clone + Save + Serialize + for<'de> Deserialize<'de> + Default + 'static,
 {
-    fn init(cx: &mut App, path: &PathBuf) {
+    fn init(cx: &mut App, path: &Path) {
         let path: Arc<Path> = path.join(format!("{}.json", Self::get_name())).into();
         cx.set_global(WriterHolder {
             data: try_read_json::<Self>(&path),
@@ -65,7 +60,7 @@ where
                 app.background_executor()
                     .timer(Duration::from_secs(5))
                     .await;
-                _ = app.update_global::<WriterHolder<Self>, _>(|holder, _| {
+                app.update_global::<WriterHolder<Self>, _>(|holder, _| {
                     println!("Writing {} to disk!", Self::get_name());
                     holder.write_to_disk();
                 });

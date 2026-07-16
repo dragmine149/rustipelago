@@ -36,7 +36,7 @@ impl Render for APWorldCard {
                             .text_xl()
                             .text_center(),
                     )
-                    .when(description.len() > 0, |this| {
+                    .when(!description.is_empty(), |this| {
                         this.tooltip(move |window, cx| {
                             Tooltip::new(description.clone()).build(window, cx)
                         })

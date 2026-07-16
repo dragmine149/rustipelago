@@ -9,7 +9,7 @@ pub(crate) mod commands;
 pub(crate) mod slots;
 pub(crate) mod ui;
 
-///
+/// Opens a new window dedicated to just managing the slots.
 pub(crate) fn slot_management(
     window: &mut Window,
     cx: &mut App,

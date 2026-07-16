@@ -45,7 +45,7 @@ impl Render for SlotRender {
             .to_string()
             .to_lowercase();
         let mut slots = Slots::get_copy(cx).slots;
-        slots.sort_by(|a, b| a.accessed.cmp(&b.accessed));
+        slots.sort_by_key(|a| a.accessed);
         // println!("{:?}", slots);
 
         v_flex()
