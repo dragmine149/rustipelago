@@ -1,4 +1,6 @@
-use rustipelago_bridge::create_pairs;
+use rustipelago_apworlds::CardData;
+use rustipelago_backend::BackendState;
+use rustipelago_bridge::{MessageHandler, create_pairs};
 
 pub fn main() {
     // we can... just "borrow" that dir as all the config is there anyway.
@@ -12,25 +14,18 @@ pub fn main() {
     }
 
     let pairs = create_pairs();
+    let frontend_sender = pairs.1.0.clone();
 
-    // let runtime = tokio::runtime::Builder::new_multi_thread()
-    //     .worker_threads(1)
-    //     .enable_all()
-    //     .build()
-    //     .expect("Failed to initialize Tokio runtime");
-    // let runtime = tokio::runtime::Builder::new_current_thread()
-    //     .build()
-    //     .expect("Failed to initialize Tokio runtime");
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().expect("Failed to initialize tokio runtime");
-        // runtime.enter();
-
-        runtime.spawn(async {
-            println!("e");
-        });
-
         println!("Starting backend");
-        rustipelago_backend::start(runtime, pairs.1.0, pairs.0.1);
+        BackendState::setup(runtime, frontend_sender, pairs.0.1);
+    });
+
+    std::thread::spawn(move || {
+        let runtime = tokio::runtime::Runtime::new().expect("Failed to initialize tokio runtime");
+        println!("Starting Cards");
+        CardData::setup(runtime, pairs.1.0, pairs.2.1);
     });
     println!("Starting frontend");
     rustipelago_frontend::main(config_dir, internal_dir, pairs.1.1, pairs.0.0);

@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 dirs.workspace = true
+rustipelago_apworlds.workspace = true
 rustipelago_backend.workspace = true
 rustipelago_bridge.workspace = true
 rustipelago_frontend.workspace = true

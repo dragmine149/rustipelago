@@ -6087,6 +6087,7 @@ name = "rustipelago"
 version = "0.1.0"
 dependencies = [
  "dirs",
+ "rustipelago_apworlds",
  "rustipelago_backend",
  "rustipelago_bridge",
  "rustipelago_frontend",
@@ -6100,6 +6101,7 @@ dependencies = [
  "rustipelago_bridge",
  "rustipelago_schema",
  "strum 0.28.0",
+ "tokio",
  "walkdir",
 ]
 

@@ -12,9 +12,12 @@ use gpui_component::{
     notification::{Notification, NotificationType},
     scroll::ScrollableElement,
 };
-use rustipelago_bridge::{BackendSender, FrontendReceiver, MessageToBackend};
+use rustipelago_bridge::messages::{MessageToBackend, MessageToFrontend};
 use rustipelago_schema::archipelago::CardType;
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::mpsc::{Receiver, Sender},
+};
 use strum::IntoEnumIterator;
 
 /// Main GPUI page.
@@ -23,7 +26,7 @@ pub(crate) struct Home {
     cards: Vec<Entity<APWorldCard>>,
     filter: Option<CardType>,
 
-    backend_sender: BackendSender,
+    backend_sender: Sender<MessageToBackend>,
     /// Window handler so that we can use it in AsyncApp
     main_window: AnyWindowHandle,
 }
@@ -32,24 +35,24 @@ impl Home {
     pub fn view(
         window: &mut Window,
         cx: &mut App,
-        frontend_receiver: FrontendReceiver,
-        backend_sender: BackendSender,
+        frontend_receiver: Receiver<MessageToFrontend>,
+        backend_sender: Sender<MessageToBackend>,
     ) -> Entity<Self> {
         cx.new(|cx| Self::new(window, cx, frontend_receiver, backend_sender))
     }
     fn new(
         window: &mut Window,
         cx: &mut Context<Self>,
-        frontend_receiver: FrontendReceiver,
-        backend_sender: BackendSender,
+        frontend_receiver: Receiver<MessageToFrontend>,
+        backend_sender: Sender<MessageToBackend>,
     ) -> Self {
         // send the receiver off to a detached thread which allows it to be non-blocking.
         // Does mean we have a bit more trouble with cx but nothing too major.
-        thread_to_main(cx, frontend_receiver.receiver, async |this, cx, rx| {
+        thread_to_main(cx, frontend_receiver, async |this, cx, rx| {
             println!("Waiting for message");
             while let Ok(msg) = rx.recv().await {
                 match msg {
-                    rustipelago_bridge::MessageToFrontend::ReadFailed { path, error } => {
+                    MessageToFrontend::ReadFailed { path, error } => {
                         let _ = Self::weak_notify(
                             &this,
                             Notification::new()
@@ -60,7 +63,7 @@ impl Home {
                             cx,
                         );
                     }
-                    rustipelago_bridge::MessageToFrontend::ReqwestFailed { url, error } => {
+                    MessageToFrontend::ReqwestFailed { url, error } => {
                         let _ = Self::weak_notify(
                             &this,
                             Notification::new()
@@ -70,7 +73,7 @@ impl Home {
                             cx,
                         );
                     }
-                    rustipelago_bridge::MessageToFrontend::LauncherUpdate { new_version } => {
+                    MessageToFrontend::LauncherUpdate { new_version } => {
                         if let Some(version) = new_version {
                             let _ = Self::weak_notify(
                                 &this,

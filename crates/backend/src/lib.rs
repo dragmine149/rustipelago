@@ -1,51 +1,38 @@
-use crate::update::check_launcher_update;
-use rustipelago_bridge::{BackendReceiver, FrontendSender, MessageToFrontend};
-use tokio::runtime::Runtime;
+use std::sync::mpsc::{Receiver, Sender};
 
+use crate::update::check_launcher_update;
+use rustipelago_bridge::{
+    MessageHandler,
+    messages::{MessageToBackend, MessageToFrontend},
+};
 pub mod apworld;
 pub mod install;
 pub mod update;
 
 pub struct BackendState {
-    sender: FrontendSender,
+    sender: Sender<MessageToFrontend>,
 }
 
-pub fn start(
-    runtime: Runtime,
-    frontend_handler: FrontendSender,
-    backend_receiver: BackendReceiver,
-) {
-    let state = BackendState {
-        sender: frontend_handler,
-    };
-
-    runtime.block_on(async { state.start(backend_receiver).await });
-    println!("Spawn done");
-}
-
-impl BackendState {
-    async fn start(self, receiver: BackendReceiver) {
-        println!("Starting loop on backend");
-        self.handle(receiver).await;
+impl MessageHandler<MessageToFrontend, MessageToBackend> for BackendState {
+    async fn start(self, receiver: Receiver<MessageToBackend>) {
+        self.handle(receiver, async |msg| match msg {
+            MessageToBackend::CheckLauncherUpdate => {
+                let update = check_launcher_update().await;
+                let _ = match update {
+                    Ok(version) => self.sender.send(MessageToFrontend::LauncherUpdate {
+                        new_version: version,
+                    }),
+                    Err(error) => self.sender.send(MessageToFrontend::ReqwestFailed {
+                        url: "http://rustipelago.dragmine.me/version.json".to_string(),
+                        error,
+                    }),
+                };
+            }
+        })
+        .await;
     }
 
-    async fn handle(self, receiver: BackendReceiver) {
-        while let Ok(msg) = receiver.receiver.recv() {
-            println!("{msg}");
-            match msg {
-                rustipelago_bridge::MessageToBackend::CheckLauncherUpdate => {
-                    let update = check_launcher_update().await;
-                    let _ = match update {
-                        Ok(version) => self.sender.send(MessageToFrontend::LauncherUpdate {
-                            new_version: version,
-                        }),
-                        Err(error) => self.sender.send(MessageToFrontend::ReqwestFailed {
-                            url: "http://rustipelago.dragmine.me/version.json".to_string(),
-                            error,
-                        }),
-                    };
-                }
-            }
-        }
+    fn new(sender: Sender<MessageToFrontend>) -> Self {
+        Self { sender }
     }
 }

@@ -9,8 +9,12 @@ use gpui::{
 };
 use gpui_component::Root;
 use rust_embed::RustEmbed;
-use rustipelago_bridge::{BackendSender, FrontendReceiver};
-use std::{fs, path::PathBuf, sync::mpsc};
+use rustipelago_bridge::messages::{MessageToBackend, MessageToCards, MessageToFrontend};
+use std::{
+    fs,
+    path::PathBuf,
+    sync::mpsc::{self, Receiver, Sender},
+};
 pub(crate) mod apworld;
 pub(crate) mod client;
 pub(crate) mod home;
@@ -98,8 +102,9 @@ actions!([Quit]);
 pub fn main(
     config_dir: PathBuf,
     internal_dir: PathBuf,
-    frontend_receiver: FrontendReceiver,
-    backend_sender: BackendSender,
+    frontend_receiver: Receiver<MessageToFrontend>,
+    backend_sender: Sender<MessageToBackend>,
+    // card_sender: Sender<MessageToCards>,
 ) {
     gpui_platform::application()
         .with_assets(gpui_component_assets::Assets)

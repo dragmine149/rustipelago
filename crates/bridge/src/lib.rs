@@ -1,87 +1,50 @@
+use tokio::runtime::Runtime;
+
+use crate::messages::{MessageToBackend, MessageToCards, MessageToFrontend};
 use std::{
-    path::Path,
-    sync::{
-        Arc,
-        mpsc::{Receiver, Sender},
-    },
+    fmt::Display,
+    sync::mpsc::{Receiver, Sender},
 };
-use strum_macros::Display;
 
-pub enum MessageToFrontend {
-    ReadFailed {
-        path: Arc<Path>,
-        error: anyhow::Error,
-    },
-    ReqwestFailed {
-        url: String,
-        error: anyhow::Error,
-    },
-    LauncherUpdate {
-        new_version: Option<String>,
-    },
-}
+pub mod messages;
 
-#[derive(Display)]
-pub enum MessageToBackend {
-    CheckLauncherUpdate,
-}
+/// Helper function to reduce *slightly* the excess use of handling.
+///
+/// Due to this not really being a library, i count it under the `if you plan to use the trait only in your own code` section.
+/// If someone has a better way, fell free to submit a PR for it.
+#[allow(async_fn_in_trait)]
+pub trait MessageHandler<S, R> {
+    async fn handle<H>(&self, receiver: Receiver<R>, handler: H)
+    where
+        R: Display,
+        H: AsyncFn(R) -> (),
+    {
+        while let Ok(msg) = receiver.recv() {
+            println!("{msg}");
+            handler(msg).await
+        }
+    }
 
-pub enum MessageToCards {}
+    fn setup(runtime: Runtime, sender: Sender<S>, receiver: Receiver<R>)
+    where
+        Self: Sized,
+    {
+        let state = Self::new(sender);
+        runtime.block_on(async move { state.start(receiver).await })
+    }
+    async fn start(self, receiver: Receiver<R>);
 
-pub struct BackendSender {
-    sender: Sender<MessageToBackend>,
-}
-pub struct FrontendSender {
-    sender: Sender<MessageToFrontend>,
-}
-
-pub struct BackendReceiver {
-    pub receiver: Receiver<MessageToBackend>,
-}
-pub struct FrontendReceiver {
-    pub receiver: Receiver<MessageToFrontend>,
+    fn new(sender: Sender<S>) -> Self;
 }
 
 pub fn create_pairs() -> (
-    (BackendSender, BackendReceiver),
-    (FrontendSender, FrontendReceiver),
+    (Sender<MessageToBackend>, Receiver<MessageToBackend>),
+    (Sender<MessageToFrontend>, Receiver<MessageToFrontend>),
+    (Sender<MessageToCards>, Receiver<MessageToCards>),
 ) {
-    let (frontend_send, frontend_recv) = std::sync::mpsc::channel();
-    let (backend_send, backend_recv) = std::sync::mpsc::channel();
+    let frontend = std::sync::mpsc::channel();
+    let backend = std::sync::mpsc::channel();
+    let cards = std::sync::mpsc::channel();
 
-    (
-        (
-            BackendSender {
-                sender: backend_send,
-            },
-            BackendReceiver {
-                receiver: backend_recv,
-            },
-        ),
-        (
-            FrontendSender {
-                sender: frontend_send,
-            },
-            FrontendReceiver {
-                receiver: frontend_recv,
-            },
-        ),
-    )
-}
-
-impl BackendSender {
-    pub fn send(
-        &self,
-        message: MessageToBackend,
-    ) -> Result<(), std::sync::mpsc::SendError<MessageToBackend>> {
-        self.sender.send(message)
-    }
-}
-impl FrontendSender {
-    pub fn send(
-        &self,
-        message: MessageToFrontend,
-    ) -> Result<(), std::sync::mpsc::SendError<MessageToFrontend>> {
-        self.sender.send(message)
-    }
+    (backend, frontend, cards)
 }

@@ -7,4 +7,5 @@ edition.workspace = true
 rustipelago_bridge.workspace = true
 rustipelago_schema.workspace = true
 strum.workspace = true
+tokio.workspace = true
 walkdir.workspace = true
