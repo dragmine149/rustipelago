@@ -96,7 +96,7 @@ impl Home {
                         }
                     }
                     MessageToFrontend::CardsLoaded { cards } => {
-                        this.update(cx, |this, cx| {
+                        let _ = this.update(cx, |this, cx| {
                             this.cards = cards
                                 .iter()
                                 .map(|world| APWorldCard::view(world.clone(), cx))
