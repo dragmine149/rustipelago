@@ -1,19 +1,22 @@
-use crate::{apworld::APWorldCard, thread_to_main};
+use crate::{apworld::APWorldCard, percent, thread_to_main};
 use gpui::{
-    AnyWindowHandle, App, AppContext, AsyncApp, Context, Entity, InteractiveElement, IntoElement,
-    ParentElement, Render, StatefulInteractiveElement, Styled, WeakEntity, Window, div, px,
+    AnyWindowHandle, App, AppContext, AsyncApp, Context, Entity, ImageSource, InteractiveElement,
+    IntoElement, ParentElement, Render, StatefulInteractiveElement, Styled, WeakEntity, Window,
+    div, img, prelude::FluentBuilder, px,
 };
 use gpui_component::{
-    ActiveTheme, Icon, IconName, Root, Sizable, WindowExt,
-    button::{Button, ButtonVariants},
+    ActiveTheme, Icon, IconName, Root, Sizable, StyledExt, WindowExt,
+    button::{Button, ButtonGroup, ButtonVariants},
     h_flex,
     input::{Input, InputState},
     label::Label,
     notification::{Notification, NotificationType},
     scroll::ScrollableElement,
+    tooltip::Tooltip,
+    v_flex,
 };
 use rustipelago_bridge::messages::{MessageToBackend, MessageToFrontend};
-use rustipelago_schema::archipelago::CardType;
+use rustipelago_schema::archipelago::{ApCard, CardType};
 use std::{
     path::PathBuf,
     sync::mpsc::{Receiver, Sender},
@@ -23,12 +26,20 @@ use strum::IntoEnumIterator;
 /// Main GPUI page.
 pub(crate) struct Home {
     search: Entity<InputState>,
-    cards: Vec<Entity<APWorldCard>>,
+    cards: Vec<ApCard>,
     filter: Option<CardType>,
 
     backend_sender: Sender<MessageToBackend>,
     /// Window handler so that we can use it in AsyncApp
     main_window: AnyWindowHandle,
+    view_mode: ViewMode,
+}
+
+#[derive(Default, PartialEq, Eq)]
+enum ViewMode {
+    List,
+    #[default]
+    Grid,
 }
 
 impl Home {
@@ -96,12 +107,7 @@ impl Home {
                         }
                     }
                     MessageToFrontend::CardsLoaded { cards } => {
-                        let _ = this.update(cx, |this, cx| {
-                            this.cards = cards
-                                .iter()
-                                .map(|world| APWorldCard::view(world.clone(), cx))
-                                .collect()
-                        });
+                        let _ = this.update(cx, |this, cx| this.cards = cards);
                     }
                 }
             }
@@ -125,10 +131,10 @@ impl Home {
 
             backend_sender,
             main_window: window.window_handle(),
+            view_mode: ViewMode::Grid,
         }
     }
 }
-
 impl Home {
     /// even even more shorthand for notification.
     ///
@@ -171,37 +177,55 @@ impl Render for Home {
                         .prefix(Icon::new(IconName::Search)),
                 ),
             )
+            // .child(
+            //     div()
+            //         .child(Label::new("Favourites"))
+            //         .child(
+            //             h_flex()
+            //                 .id("favuorites_list")
+            //                 .w_full()
+            //                 .overflow_y_scroll()
+            //                 .overflow_y_scrollbar()
+            //                 .items_center()
+            //                 .border_1()
+            //                 .border_color(cx.theme().border)
+            //                 .children(
+            //                     self.cards
+            //                         .iter()
+            //                         .filter(|card| {
+            //                             // card.read_with(cx, |c, _| {
+            //                             // c.world_info.favourite &&
+            //                             // c.world_info.name.contains(&search_value)
+            //                             false
+            //                             // })
+            //                         })
+            //                         .cloned(),
+            //                 ),
+            //         )
+            //         .pb_5(),
+            // )
             .child(
                 div()
-                    .child(Label::new("Favourites"))
+                    .size_full()
                     .child(
                         h_flex()
-                            .id("favuorites_list")
                             .w_full()
-                            .overflow_y_scroll()
-                            .overflow_y_scrollbar()
-                            .items_center()
-                            .border_1()
-                            .border_color(cx.theme().border)
-                            .children(
-                                self.cards
-                                    .iter()
-                                    .filter(|card| {
-                                        card.read_with(cx, |c, _| {
-                                            // c.world_info.favourite &&
-                                            // c.world_info.name.contains(&search_value)
-                                            false
-                                        })
-                                    })
-                                    .cloned(),
+                            .child(Label::new("Cards").text_3xl())
+                            .child(
+                                ButtonGroup::new("view_mode")
+                                    .child(Button::new("grid").label("Grid").on_click(cx.listener(
+                                        |this, _, _, cx| {
+                                            this.view_mode = ViewMode::Grid;
+                                        },
+                                    )))
+                                    .child(Button::new("list").label("List").on_click(cx.listener(
+                                        |this, _, _, cx| {
+                                            this.view_mode = ViewMode::List;
+                                        },
+                                    )))
+                                    .self_end(),
                             ),
                     )
-                    .pb_5(),
-            )
-            .child(
-                div()
-                    .w_full()
-                    .child(Label::new("Cards"))
                     .child(
                         h_flex()
                             .p_2()
@@ -222,25 +246,66 @@ impl Render for Home {
                             })),
                     )
                     .child(
-                        h_flex()
+                        div()
                             .id("card_list")
+                            .w_full()
+                            .h(percent(80.))
+                            // .h_auto()
                             .children(
                                 self.cards
                                     .iter()
                                     .filter(|card| {
-                                        card.read_with(cx, |c, _| {
-                                            c.world_info.name.contains(&search_value)
-                                                && self.filter.as_ref().is_none_or(|filter| {
-                                                    &c.world_info.card_type == filter
-                                                })
-                                        })
+                                        card.name.contains(&search_value)
+                                            && self
+                                                .filter
+                                                .as_ref()
+                                                .is_none_or(|filter| &card.card_type == filter)
                                     })
-                                    .cloned(),
+                                    .map(|card| {
+                                        let name = card.name.clone();
+                                        Button::new("ap-world")
+                                            .when(self.view_mode == ViewMode::Grid, |this| {
+                                                this.h_flex().size_40()
+                                            })
+                                            .when(self.view_mode == ViewMode::List, |this| {
+                                                this.v_flex().h_40().w_full()
+                                            })
+                                            .child(
+                                                img(ImageSource::from(
+                                                    card.icon
+                                                        .as_ref()
+                                                        .unwrap_or(&String::from(
+                                                            "images/ArchipelagoIcon.png",
+                                                        ))
+                                                        .to_string(),
+                                                ))
+                                                .size_20()
+                                                .self_center(),
+                                            )
+                                            .child(
+                                                Label::new(card.name.clone())
+                                                    .text_xl()
+                                                    .text_center(),
+                                            )
+                                            .when(
+                                                !card.description.is_empty()
+                                                    && self.view_mode == ViewMode::Grid,
+                                                |this| this.tooltip(card.description.clone()),
+                                            )
+                                            .on_click(cx.listener(move |this, _, _, _| {
+                                                let _ = this.backend_sender.send(
+                                                    MessageToBackend::OpenCard {
+                                                        card_name: name.clone(),
+                                                    },
+                                                );
+                                            }))
+                                    }),
                             )
                             .items_center()
-                            .size_full()
                             .overflow_scroll()
-                            .overflow_scrollbar(),
+                            .overflow_scrollbar()
+                            .when(self.view_mode == ViewMode::Grid, |this| this.h_flex())
+                            .when(self.view_mode == ViewMode::List, |this| this.v_flex()),
                     ),
             )
             .children(notifications)

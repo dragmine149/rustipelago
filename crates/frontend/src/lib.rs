@@ -4,10 +4,11 @@ use crate::{
 };
 use anyhow::anyhow;
 use gpui::{
-    App, AppContext, AssetSource, AsyncApp, Bounds, Context, Entity, KeyBinding, SharedString,
-    Task, TitlebarOptions, WeakEntity, Window, WindowBounds, WindowOptions, actions, px, size,
+    App, AppContext, AssetSource, AsyncApp, Bounds, Context, Entity, KeyBinding, Length,
+    SharedString, Task, TitlebarOptions, WeakEntity, Window, WindowBounds, WindowOptions, actions,
+    px, size,
 };
-use gpui_component::Root;
+use gpui_component::{ActiveTheme, DivInspector, Root, ToggleInspector};
 use rust_embed::RustEmbed;
 use rustipelago_bridge::messages::{MessageToBackend, MessageToFrontend};
 use std::{
@@ -72,6 +73,15 @@ where
 
     println!("Returning spawn obj");
     cx.spawn(async move |this, cx| f(this, cx, rx).await)
+}
+
+/// Use a percentage in terms of length. Shorthand for `Length::Definite(gpui::DefiniteLength::Fraction())`
+///
+/// value is in terms of percentage, hence is valid between 0 and 100. value will also be clamped if it's too high.
+pub(crate) fn percent(value: f32) -> Length {
+    Length::Definite(gpui::DefiniteLength::Fraction(
+        value.clamp(0.0, 100.0) / 100.0,
+    ))
 }
 
 /// Holds and loads custom assets.
@@ -165,6 +175,7 @@ pub fn main(
                     ..Default::default()
                 },
                 |window, cx| {
+                    cx.new(|cx| DivInspector::new(window, cx));
                     let home = Home::view(window, cx, frontend_receiver, backend_sender);
                     cx.new(|cx| Root::new(home, window, cx))
                 },

@@ -5,7 +5,10 @@ edition.workspace = true
 
 [dependencies]
 gpui = { git = "https://github.com/zed-industries/zed" }
-gpui-component = { git = "https://github.com/longbridge/gpui-component.git" }
+gpui-component = {
+  git = "https://github.com/longbridge/gpui-component.git",
+  features = ["inspector"]
+}
 gpui-component-assets = {
   git = "https://github.com/longbridge/gpui-component.git"
 }
