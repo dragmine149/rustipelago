@@ -263,9 +263,9 @@ impl Render for Home {
                                     })
                                     .map(|card| {
                                         let name = card.name.clone();
-                                        Button::new("ap-world")
+                                        Button::new(format!("ap-world-{}", name))
                                             .when(self.view_mode == ViewMode::Grid, |this| {
-                                                this.h_flex().size_40()
+                                                this.v_flex().size_40()
                                             })
                                             .when(self.view_mode == ViewMode::List, |this| {
                                                 this.v_flex().h_40().w_full()
@@ -283,9 +283,38 @@ impl Render for Home {
                                                 .self_center(),
                                             )
                                             .child(
-                                                Label::new(card.name.clone())
-                                                    .text_xl()
-                                                    .text_center(),
+                                                div()
+                                                    .size_full()
+                                                    .child(
+                                                        Label::new(card.name.clone())
+                                                            .text_lg()
+                                                            .when(
+                                                                self.view_mode == ViewMode::List,
+                                                                |this| this.text_2xl(),
+                                                            )
+                                                            .text_center(),
+                                                    )
+                                                    .when(
+                                                        self.view_mode == ViewMode::List,
+                                                        |this| {
+                                                            this.child(format!(
+                                                                "\n{}",
+                                                                card.description.clone()
+                                                            ))
+                                                        },
+                                                    ),
+                                                // .when(
+                                                //     self.view_mode == ViewMode::List,
+                                                //     |this| {
+                                                //         this.child(
+                                                //             Tooltip::new(
+                                                //                 card.description.clone(),
+                                                //             )
+                                                //             .text_lg()
+                                                //             .build(window, cx),
+                                                //         )
+                                                //     },
+                                                // ),
                                             )
                                             .when(
                                                 !card.description.is_empty()
