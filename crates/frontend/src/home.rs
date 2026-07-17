@@ -274,6 +274,7 @@ impl Render for Home {
                                                 img(ImageSource::from(
                                                     card.icon
                                                         .as_ref()
+                                                        .and_then(|v| v.is_empty().then_some(v))
                                                         .unwrap_or(&String::from(
                                                             "images/ArchipelagoIcon.png",
                                                         ))
@@ -303,18 +304,6 @@ impl Render for Home {
                                                             ))
                                                         },
                                                     ),
-                                                // .when(
-                                                //     self.view_mode == ViewMode::List,
-                                                //     |this| {
-                                                //         this.child(
-                                                //             Tooltip::new(
-                                                //                 card.description.clone(),
-                                                //             )
-                                                //             .text_lg()
-                                                //             .build(window, cx),
-                                                //         )
-                                                //     },
-                                                // ),
                                             )
                                             .when(
                                                 !card.description.is_empty()
