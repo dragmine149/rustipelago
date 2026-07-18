@@ -1,4 +1,7 @@
-use crate::writer::{Save, Writer};
+use crate::{
+    home::ViewMode,
+    writer::{Save, Writer},
+};
 use gpui::SharedString;
 use serde::{Deserialize, Serialize};
 
@@ -7,6 +10,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Config {
     pub active_theme: SharedString,
+    pub view_mode: ViewMode,
 }
 
 impl Writer for Config {

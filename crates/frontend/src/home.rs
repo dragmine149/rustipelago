@@ -1,26 +1,25 @@
-use crate::{apworld::APWorldCard, percent, thread_to_main};
+use crate::{
+    percent, thread_to_main,
+    writer::{Writer, config::Config},
+};
 use gpui::{
     AnyWindowHandle, App, AppContext, AsyncApp, Context, Entity, ImageSource, InteractiveElement,
     IntoElement, ParentElement, Render, StatefulInteractiveElement, Styled, WeakEntity, Window,
     div, img, prelude::FluentBuilder, px,
 };
 use gpui_component::{
-    ActiveTheme, Icon, IconName, Root, Sizable, StyledExt, WindowExt,
+    Icon, IconName, Root, Sizable, StyledExt, WindowExt,
     button::{Button, ButtonGroup, ButtonVariants},
     h_flex,
     input::{Input, InputState},
     label::Label,
     notification::{Notification, NotificationType},
     scroll::ScrollableElement,
-    tooltip::Tooltip,
-    v_flex,
 };
 use rustipelago_bridge::messages::{MessageToBackend, MessageToFrontend};
 use rustipelago_schema::archipelago::{ApCard, CardType};
-use std::{
-    path::PathBuf,
-    sync::mpsc::{Receiver, Sender},
-};
+use serde::{Deserialize, Serialize};
+use std::sync::mpsc::{Receiver, Sender};
 use strum::IntoEnumIterator;
 
 /// Main GPUI page.
@@ -32,13 +31,12 @@ pub(crate) struct Home {
     backend_sender: Sender<MessageToBackend>,
     /// Window handler so that we can use it in AsyncApp
     main_window: AnyWindowHandle,
-    view_mode: ViewMode,
 }
 
-#[derive(Default, PartialEq, Eq)]
-enum ViewMode {
-    List,
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize, Clone)]
+pub(crate) enum ViewMode {
     #[default]
+    List,
     Grid,
 }
 
@@ -131,7 +129,6 @@ impl Home {
 
             backend_sender,
             main_window: window.window_handle(),
-            view_mode: ViewMode::Grid,
         }
     }
 }
@@ -164,8 +161,10 @@ impl Render for Home {
             .search
             .read_with(cx, |search, _| search.value())
             .to_string();
+        let view_mode = Config::get(cx).view_mode;
 
         let notifications = Root::render_notification_layer(window, cx);
+
         div()
             .size_full()
             .child(
@@ -261,71 +260,63 @@ impl Render for Home {
                                                 .as_ref()
                                                 .is_none_or(|filter| &card.card_type == filter)
                                     })
-                                    .map(|card| {
-                                        let name = card.name.clone();
-                                        Button::new(format!("ap-world-{}", name))
-                                            .when(self.view_mode == ViewMode::Grid, |this| {
-                                                this.v_flex().size_40()
-                                            })
-                                            .when(self.view_mode == ViewMode::List, |this| {
-                                                this.v_flex().h_40().w_full()
-                                            })
-                                            .child(
-                                                img(ImageSource::from(
-                                                    card.icon
-                                                        .as_ref()
-                                                        .and_then(|v| v.is_empty().then_some(v))
-                                                        .unwrap_or(&String::from(
-                                                            "images/ArchipelagoIcon.png",
-                                                        ))
-                                                        .to_string(),
-                                                ))
-                                                .size_20()
-                                                .self_center(),
-                                            )
-                                            .child(
-                                                div()
-                                                    .size_full()
-                                                    .child(
-                                                        Label::new(card.name.clone())
-                                                            .text_lg()
-                                                            .when(
-                                                                self.view_mode == ViewMode::List,
-                                                                |this| this.text_2xl(),
-                                                            )
-                                                            .text_center(),
-                                                    )
-                                                    .when(
-                                                        self.view_mode == ViewMode::List,
-                                                        |this| {
-                                                            this.child(format!(
-                                                                "\n{}",
-                                                                card.description.clone()
-                                                            ))
-                                                        },
-                                                    ),
-                                            )
-                                            .when(
-                                                !card.description.is_empty()
-                                                    && self.view_mode == ViewMode::Grid,
-                                                |this| this.tooltip(card.description.clone()),
-                                            )
-                                            .on_click(cx.listener(move |this, _, _, _| {
-                                                let _ = this.backend_sender.send(
-                                                    MessageToBackend::OpenCard {
-                                                        card_name: name.clone(),
-                                                    },
-                                                );
-                                            }))
-                                    }),
+                                    .map(|card| render_card(card, &view_mode, cx)),
                             )
                             .items_center()
                             .overflow_scroll()
                             .overflow_scrollbar()
-                            .when(self.view_mode == ViewMode::Grid, |this| this.h_flex())
-                            .when(self.view_mode == ViewMode::List, |this| this.v_flex()),
+                            .when(view_mode == ViewMode::Grid, |this| this.h_flex())
+                            .when(view_mode == ViewMode::List, |this| this.v_flex()),
                     ),
             )
             .children(notifications)
     }
+}
+
+fn render_card(card: &ApCard, view_mode: &ViewMode, cx: &Context<Home>) -> impl IntoElement {
+    let name = card.name.clone();
+    Button::new(format!("ap-world-{}", name))
+        .when(*view_mode == ViewMode::Grid, |this| this.size_40())
+        .when(*view_mode == ViewMode::List, |this| this.h_40().w_full())
+        .child(
+            div()
+                .size_full()
+                .when(*view_mode == ViewMode::Grid, |this| this.v_flex())
+                .when(*view_mode == ViewMode::List, |this| this.h_flex())
+                .child(
+                    img(ImageSource::from(
+                        card.icon
+                            .as_ref()
+                            .and_then(|v| v.is_empty().then_some(v))
+                            .unwrap_or(&String::from("images/ArchipelagoIcon.png"))
+                            .to_string(),
+                    ))
+                    .when(*view_mode == ViewMode::Grid, |this| this.size_full())
+                    .when(*view_mode == ViewMode::List, |this| this.size_20())
+                    .self_center(),
+                )
+                .child(
+                    div()
+                        // .when(*view_mode == ViewMode::Grid, |this| this.v_flex())
+                        .when(*view_mode == ViewMode::List, |this| this.size_full())
+                        .child(
+                            Label::new(card.name.clone())
+                                .text_lg()
+                                .when(*view_mode == ViewMode::List, |this| this.text_2xl())
+                                .text_center(),
+                        )
+                        .when(*view_mode == ViewMode::List, |this| {
+                            this.child(format!("\n{}", card.description.clone()))
+                        }),
+                ),
+        )
+        .when(
+            !card.description.is_empty() && *view_mode == ViewMode::Grid,
+            |this| this.tooltip(card.description.clone()),
+        )
+        .on_click(cx.listener(move |this, _, _, _| {
+            let _ = this.backend_sender.send(MessageToBackend::OpenCard {
+                card_name: name.clone(),
+            });
+        }))
 }
