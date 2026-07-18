@@ -27,24 +27,23 @@ pub struct BackendState {
 }
 
 impl MessageHandler<MessageToFrontend, MessageToBackend> for BackendState {
-    async fn start(self, receiver: Receiver<MessageToBackend>) {
-        self.handle(receiver, async |msg| match msg {
+    fn start(self, receiver: Receiver<MessageToBackend>) {
+        self.handle(receiver, async |this, msg| match msg {
             MessageToBackend::CheckLauncherUpdate => {
                 let update = check_launcher_update().await;
                 let _ = match update {
-                    Ok(version) => self.sender.send(MessageToFrontend::LauncherUpdate {
+                    Ok(version) => this.sender.send(MessageToFrontend::LauncherUpdate {
                         new_version: version,
                     }),
-                    Err(error) => self.sender.send(MessageToFrontend::ReqwestFailed {
+                    Err(error) => this.sender.send(MessageToFrontend::ReqwestFailed {
                         url: "http://rustipelago.dragmine.me/version.json".to_string(),
                         error,
                     }),
                 };
             }
-            MessageToBackend::FetchCards => self.load_cards(),
+            MessageToBackend::FetchCards => this.load_cards(),
             MessageToBackend::OpenCard { card_name } => println!("Opening card {card_name}"),
-        })
-        .await;
+        });
     }
 
     fn new(sender: Sender<MessageToFrontend>) -> Self {
