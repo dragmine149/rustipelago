@@ -1,4 +1,5 @@
 use crate::{
+    cards::{CardHandler, installer::Installer},
     percent, thread_to_main,
     writer::{Writer, config::Config},
 };
@@ -17,7 +18,10 @@ use gpui_component::{
     scroll::ScrollableElement,
 };
 use rustipelago_bridge::messages::{MessageToBackend, MessageToFrontend};
-use rustipelago_schema::archipelago::{ApCard, CardType};
+use rustipelago_schema::{
+    archipelago::{ApCard, CardType},
+    cards::DefaultCards,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::{Receiver, Sender};
 use strum::IntoEnumIterator;
@@ -107,6 +111,15 @@ impl Home {
                     MessageToFrontend::CardsLoaded { cards } => {
                         let _ = this.update(cx, |this, cx| this.cards = cards);
                     }
+                    MessageToFrontend::UserInput { card } => match card.python {
+                        true => todo!(),
+                        false => match DefaultCards::try_from(card.name).unwrap() {
+                            DefaultCards::InstallApWorld => {
+                                _ = this.update(cx, |this, cx| Installer::open_window(cx));
+                            }
+                            DefaultCards::SlotManager => todo!(),
+                        },
+                    },
                 }
             }
         })
@@ -157,13 +170,13 @@ impl Home {
 
 impl Render for Home {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let notifications = Root::render_notification_layer(window, cx);
+
         let search_value = self
             .search
             .read_with(cx, |search, _| search.value())
             .to_string();
-        let view_mode = Config::get(cx).view_mode;
-
-        let notifications = Root::render_notification_layer(window, cx);
+        let view_mode = &Config::get(cx).view_mode;
 
         div()
             .size_full()
@@ -212,16 +225,12 @@ impl Render for Home {
                             .child(Label::new("Cards").text_3xl())
                             .child(
                                 ButtonGroup::new("view_mode")
-                                    .child(Button::new("grid").label("Grid").on_click(cx.listener(
-                                        |this, _, _, cx| {
-                                            this.view_mode = ViewMode::Grid;
-                                        },
-                                    )))
-                                    .child(Button::new("list").label("List").on_click(cx.listener(
-                                        |this, _, _, cx| {
-                                            this.view_mode = ViewMode::List;
-                                        },
-                                    )))
+                                    .child(Button::new("grid").label("Grid").on_click(
+                                        |_, _, cx| Config::get_mut(cx).view_mode = ViewMode::Grid,
+                                    ))
+                                    .child(Button::new("list").label("List").on_click(
+                                        |_, _, cx| Config::get_mut(cx).view_mode = ViewMode::List,
+                                    ))
                                     .self_end(),
                             ),
                     )
@@ -260,13 +269,13 @@ impl Render for Home {
                                                 .as_ref()
                                                 .is_none_or(|filter| &card.card_type == filter)
                                     })
-                                    .map(|card| render_card(card, &view_mode, cx)),
+                                    .map(|card| render_card(card, view_mode, cx)),
                             )
                             .items_center()
                             .overflow_scroll()
                             .overflow_scrollbar()
-                            .when(view_mode == ViewMode::Grid, |this| this.h_flex())
-                            .when(view_mode == ViewMode::List, |this| this.v_flex()),
+                            .when(*view_mode == ViewMode::Grid, |this| this.h_flex())
+                            .when(*view_mode == ViewMode::List, |this| this.v_flex()),
                     ),
             )
             .children(notifications)
@@ -275,6 +284,7 @@ impl Render for Home {
 
 fn render_card(card: &ApCard, view_mode: &ViewMode, cx: &Context<Home>) -> impl IntoElement {
     let name = card.name.clone();
+    let card_clone = card.to_owned();
     Button::new(format!("ap-world-{}", name))
         .when(*view_mode == ViewMode::Grid, |this| this.size_40())
         .when(*view_mode == ViewMode::List, |this| this.h_40().w_full())
@@ -315,8 +325,9 @@ fn render_card(card: &ApCard, view_mode: &ViewMode, cx: &Context<Home>) -> impl 
             |this| this.tooltip(card.description.clone()),
         )
         .on_click(cx.listener(move |this, _, _, _| {
-            let _ = this.backend_sender.send(MessageToBackend::OpenCard {
-                card_name: name.clone(),
-            });
+            let card = card_clone.clone();
+            let _ = this
+                .backend_sender
+                .send(MessageToBackend::OpenCard { card });
         }))
 }

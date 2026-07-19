@@ -3,7 +3,7 @@ use ghgrab::{
     download::Downloader,
     github::{GitHubClient, RepoItem},
 };
-use std::path::PathBuf;
+use std::{env::temp_dir, path::PathBuf};
 
 pub enum GithubInstallSource {
     Release,
@@ -33,7 +33,7 @@ async fn gh_folder(github: String, world_name: String, worlds_dir: PathBuf) -> a
         .filter(|item| item.path.contains(&world_path))
         .cloned()
         .collect::<Vec<RepoItem>>();
-    let dest_folder = PathBuf::from(format!("/tmp/rustipelago/{}", world_name));
+    let dest_folder = temp_dir().join(format!("rustipelago/{}", world_name));
     let downloader = Downloader::new(dest_folder.clone(), gh)?;
     downloader
         .download_items(&world_data, "", |progress| println!("{}", progress))

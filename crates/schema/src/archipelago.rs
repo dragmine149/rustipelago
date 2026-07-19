@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumIter};
 
-#[derive(Clone, EnumIter, Display, PartialEq, Eq)]
+#[derive(Debug, Clone, EnumIter, Display, PartialEq, Eq)]
 pub enum CardType {
     Client,
     Tool,
@@ -10,12 +10,12 @@ pub enum CardType {
     Misc,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ApCard {
     pub icon: Option<String>,
     pub name: String,
     pub description: String,
-    pub path: String,
+    pub python: bool,
     pub card_type: CardType,
 }
 
@@ -25,7 +25,7 @@ impl Default for ApCard {
             icon: None,
             name: String::from("Unknown card"),
             description: String::default(),
-            path: String::default(),
+            python: false,
             card_type: CardType::Misc,
         }
     }

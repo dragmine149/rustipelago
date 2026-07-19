@@ -1,9 +1,19 @@
+//! Deal with handling zipping and unzipping apworlds.
+//!
+//! Mostly just borrowed code from: https://github.com/zip-rs/zip2/tree/master/examples
+
 use anyhow::anyhow;
 use rand::RngExt;
-use rustipelago_schema::archipelago::ApCard;
-use std::{fs::File, path::PathBuf};
+use rustipelago_schema::archipelago::{ApCard, CardType};
+use std::{
+    env::temp_dir,
+    fs::{File, Permissions, create_dir_all, remove_dir_all, set_permissions},
+    os::unix::fs::PermissionsExt,
+    path::{Path, PathBuf},
+};
+
 use walkdir::WalkDir;
-use zip::write::SimpleFileOptions;
+use zip::{ZipArchive, ZipWriter, result::ZipError, write::SimpleFileOptions};
 
 /// Read the world data from the file system.
 ///
@@ -11,6 +21,7 @@ use zip::write::SimpleFileOptions;
 pub fn read(world: PathBuf) -> Option<ApCard> {
     Some(ApCard {
         name: world.file_stem()?.to_str()?.to_string(),
+        python: true,
         ..Default::default()
     })
 }
@@ -19,12 +30,12 @@ pub fn read(world: PathBuf) -> Option<ApCard> {
 ///
 /// This is normally a build-from-source option, but as we get worlds via ref we expose this anyway.
 pub fn write_folder(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()> {
-    let zip_file = PathBuf::from(format!(
-        "/tmp/rustipelago/.{}.apworld",
+    let zip_file = temp_dir().join(format!(
+        "rustipelago/.{}.apworld",
         rand::rng().sample(rand::distr::Alphabetic) as char
     ));
     let file = File::create(&zip_file)?;
-    let mut zip = zip::ZipWriter::new(file);
+    let mut zip = ZipWriter::new(file);
     let options = SimpleFileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated)
         .unix_permissions(0o755);
@@ -72,4 +83,116 @@ pub fn write_folder(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()>
     zip.finish()?;
     std::fs::rename(zip_file, dest_dir)?;
     Ok(())
+}
+
+/// Mount the zip file so that we can run the code without issue.
+///
+/// NOTE: We assume that the user has read/write permissions to their temp dir.
+pub fn mount_world(world: &PathBuf) -> anyhow::Result<PathBuf> {
+    let out_dir = temp_dir().join(format!(
+        "rustipelago/.{}{}.apworld",
+        rand::rng().sample(rand::distr::Alphabetic) as char,
+        world.file_name().unwrap().display()
+    ));
+    _ = std::fs::create_dir_all(&out_dir)?;
+
+    let mut archive = match File::open(&world)
+        .map_err(ZipError::from)
+        .and_then(ZipArchive::new)
+    {
+        Ok(archive) => archive,
+        Err(e) => {
+            eprintln!("Error: unable to open archive {:?}: {e}", world.display());
+            return Err(e.into());
+        }
+    };
+
+    let mut some_files_failed = false;
+    for i in 0..archive.len() {
+        let mut file = match archive.by_index(i) {
+            Ok(file) => file,
+            Err(e) => {
+                eprintln!("Error: unable to open file {i} in archive: {e}");
+                some_files_failed = true;
+                continue;
+            }
+        };
+        let out_path = (&out_dir).join(match file.enclosed_name() {
+            Some(path) => path,
+            None => {
+                eprintln!(
+                    "Error: unable to extract file {:?} because it has an invalid path.",
+                    file.name()
+                );
+                some_files_failed = true;
+                continue;
+            }
+        });
+
+        if file.is_dir() {
+            _ = create_dir_all(&out_path);
+        } else {
+            if let Some(p) = out_path.parent() {
+                _ = create_dir_all(p);
+            }
+            match File::create(&out_path)
+                .and_then(|mut outfile| std::io::copy(&mut file, &mut outfile))
+            {
+                Ok(bytes_extracted) => {
+                    println!(
+                        "File {} extracted to {:?} ({bytes_extracted} bytes)",
+                        i,
+                        out_path.display(),
+                    );
+                }
+                Err(e) => {
+                    eprintln!(
+                        "Error: unable to extract file {i} to {:?}: {e}",
+                        out_path.display()
+                    );
+                    some_files_failed = true;
+                    continue;
+                }
+            }
+        }
+        // if let Err(e) = set_permissions(&out_path, Permissions::from_mode(0o555)) {
+        //     eprintln!(
+        //         "Error: unable to change permissions of file {i} ({:?}): {e}",
+        //         out_path.display()
+        //     );
+        //     some_files_failed = true;
+        // }
+    }
+
+    if some_files_failed {
+        eprintln!("Error: some files failed to extract; see above errors.");
+        Err(anyhow!("Extraction partially failed"))
+    } else {
+        Ok(out_dir)
+    }
+}
+
+pub fn unmount_world(world_mount: &PathBuf) -> Result<(), std::io::Error> {
+    remove_dir_all(world_mount)
+}
+
+pub fn list_worlds(world_dir: &PathBuf) -> Vec<ApCard> {
+    WalkDir::new(world_dir)
+        .into_iter()
+        .filter_map(|world| world.ok())
+        .map(|world| world.file_name().to_str().unwrap().to_owned())
+        .filter(|world| {
+            PathBuf::from(world)
+                .extension()
+                .and_then(|ext| (ext == "apworld").then(|| true))
+                .is_some()
+        })
+        .map(|world| ApCard {
+            icon: None,
+            name: world.strip_suffix(".apworld").unwrap().to_string(),
+            description: String::default(),
+            python: true,
+            card_type: CardType::Misc,
+        })
+        .collect()
 }

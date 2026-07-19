@@ -1,28 +1,19 @@
 use rustipelago_schema::archipelago::ApCard;
-use std::{path::Path, sync::Arc};
+use std::path::PathBuf;
 use strum_macros::Display;
 
 #[derive(Display)]
 pub enum MessageToFrontend {
-    ReadFailed {
-        path: Arc<Path>,
-        error: anyhow::Error,
-    },
-    ReqwestFailed {
-        url: String,
-        error: anyhow::Error,
-    },
-    LauncherUpdate {
-        new_version: Option<String>,
-    },
-    CardsLoaded {
-        cards: Vec<ApCard>,
-    },
+    ReadFailed { path: PathBuf, error: anyhow::Error },
+    ReqwestFailed { url: String, error: anyhow::Error },
+    LauncherUpdate { new_version: Option<String> },
+    CardsLoaded { cards: Vec<ApCard> },
+    UserInput { card: ApCard },
 }
 
 #[derive(Display)]
 pub enum MessageToBackend {
     CheckLauncherUpdate,
-    OpenCard { card_name: String },
+    OpenCard { card: ApCard },
     FetchCards,
 }

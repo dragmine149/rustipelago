@@ -3,24 +3,27 @@
 //!
 //! Additionally, in order to update these cards, the whole application needs to be updated.
 
-use rustipelago_schema::archipelago::{ApCard, CardType};
+use rustipelago_schema::{
+    archipelago::{ApCard, CardType},
+    cards::DefaultCards,
+};
 
 pub(crate) fn get_default_cards() -> [ApCard; 2] {
     [
         ApCard {
             icon: None,
-            name: "Install APWorld".to_string(),
+            name: String::from(DefaultCards::InstallApWorld),
             description:
                 "Install an APWorld to play games not included with archipelago by default."
                     .to_string(),
-            path: String::default(),
+            python: false,
             card_type: CardType::Tool,
         },
         ApCard {
             icon: None,
-            name: "Slot Manager".to_string(),
+            name: String::from(DefaultCards::SlotManager),
             description: "Manage all of the \"local\" slots. (need better description)".to_string(),
-            path: String::default(),
+            python: false,
             card_type: CardType::Tool,
         },
     ]
@@ -32,14 +35,14 @@ pub(crate) fn load_dummy_worlds() -> Vec<ApCard> {
             icon: None,
             name: "dummy".to_string(),
             description: "".to_string(),
-            path: "".to_string(),
+            python: false,
             card_type: CardType::Client,
         },
         ApCard {
             icon: None,
             name: "dummy2".to_string(),
             description: "".to_string(),
-            path: "".to_string(),
+            python: true,
             card_type: CardType::Client,
         },
     ]

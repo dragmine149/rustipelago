@@ -1,10 +1,7 @@
 use crate::messages::{MessageToBackend, MessageToFrontend};
 use std::{
     fmt::Display,
-    sync::{
-        Arc,
-        mpsc::{Receiver, Sender},
-    },
+    sync::mpsc::{Receiver, Sender},
 };
 use tokio::runtime::Runtime;
 
@@ -13,24 +10,14 @@ pub mod messages;
 /// Helper function to reduce *slightly* the excess use of handling.
 pub trait MessageHandler<S, R> {
     /// Written by T3 Chat (Kimi K2.5)
-    fn handle<H, Fut>(self, receiver: Receiver<R>, handler: H)
+    fn handle<H>(&mut self, receiver: Receiver<R>, handler: H)
     where
-        R: Display + Send + Sync + 'static,
-        H: Fn(Arc<Self>, R) -> Fut + Clone + Send + Sync + 'static,
-        Fut: Future<Output = ()> + Send + 'static,
-        Self: Send + Sync + 'static + Sized,
+        R: Display,
+        H: Fn(&mut Self, R) -> (),
     {
-        let this = Arc::new(self);
-
         while let Ok(msg) = receiver.recv() {
             println!("{msg}");
-
-            let this_clone = Arc::clone(&this);
-            let handler_clone = handler.clone();
-
-            tokio::spawn(async move {
-                handler_clone(this_clone, msg).await;
-            });
+            handler(self, msg);
         }
     }
 
@@ -38,10 +25,10 @@ pub trait MessageHandler<S, R> {
     where
         Self: Sized,
     {
-        let state = Self::new(sender);
+        let mut state = Self::new(sender);
         runtime.block_on(async move { state.start(receiver) });
     }
-    fn start(self, receiver: Receiver<R>);
+    fn start(&mut self, receiver: Receiver<R>);
 
     fn new(sender: Sender<S>) -> Self;
 }

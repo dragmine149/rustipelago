@@ -16,6 +16,7 @@ use std::{
     path::PathBuf,
     sync::mpsc::{self, Receiver, Sender},
 };
+pub(crate) mod cards;
 pub(crate) mod client;
 pub(crate) mod home;
 pub(crate) mod writer;
