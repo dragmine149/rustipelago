@@ -8,6 +8,7 @@ use rustipelago_schema::archipelago::{ApCard, CardType};
 use std::{
     env::temp_dir,
     fs::{File, Permissions, create_dir_all, remove_dir_all, set_permissions},
+    io::Read,
     os::unix::fs::PermissionsExt,
     path::PathBuf,
 };
@@ -197,6 +198,43 @@ pub fn list_worlds(world_dir: &PathBuf) -> Vec<ApCard> {
     WalkDir::new(world_dir)
         .into_iter()
         .filter_map(|world| world.ok())
+        .map(|world| {
+            println!("Attempting to read: {:?}", world.path().display());
+            let mut archive = match File::open(world.path())
+                .map_err(ZipError::from)
+                .and_then(ZipArchive::new)
+            {
+                Ok(archive) => archive,
+                Err(e) => {
+                    eprintln!(
+                        "Error: unable to open archive {:?}: {e}",
+                        world.path().display()
+                    );
+                    return world;
+                }
+            };
+            let name = world
+                .file_name()
+                .to_str()
+                .unwrap()
+                .split_once(".")
+                .unwrap()
+                .0;
+            println!("{name}");
+            println!("Archive: {:?}", archive.file_names().collect::<Vec<&str>>());
+            println!(
+                "{:?}",
+                archive
+                    .by_name(&format!("{name}/__init__.py"))
+                    .and_then(|mut file| {
+                        let mut buf = String::new();
+                        _ = file.read_to_string(&mut buf);
+                        Ok(buf)
+                    })
+            );
+
+            world
+        })
         .map(|world| world.file_name().to_str().unwrap().to_owned())
         .filter(|world| {
             PathBuf::from(world)
