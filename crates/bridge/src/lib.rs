@@ -9,7 +9,6 @@ pub mod messages;
 
 /// Helper function to reduce *slightly* the excess use of handling.
 pub trait MessageHandler<S, R> {
-    /// Written by T3 Chat (Kimi K2.5)
     fn handle<H>(&mut self, receiver: Receiver<R>, handler: H)
     where
         R: Display,

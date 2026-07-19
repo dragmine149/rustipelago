@@ -8,7 +8,7 @@ use gpui::{
     SharedString, Task, TitlebarOptions, WeakEntity, Window, WindowBounds, WindowOptions, actions,
     px, size,
 };
-use gpui_component::{ActiveTheme, DivInspector, Root, ToggleInspector};
+use gpui_component::{DivInspector, Root};
 use rust_embed::RustEmbed;
 use rustipelago_bridge::messages::{MessageToBackend, MessageToFrontend};
 use std::{

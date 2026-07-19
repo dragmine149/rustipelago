@@ -1,3 +1,6 @@
+//! Main file and main part of the workspace.
+//!
+//! Just links everything together and gives a starting place.
 use rustipelago_backend::BackendState;
 use rustipelago_bridge::{MessageHandler, create_pairs};
 

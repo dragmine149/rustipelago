@@ -1,12 +1,12 @@
 use crate::{
-    cards::{CardHandler, installer::Installer},
+    cards::{CardHandler, cards::CardManager, installer::Installer},
     percent, thread_to_main,
     writer::{Writer, config::Config},
 };
 use gpui::{
-    AnyWindowHandle, App, AppContext, AsyncApp, Context, Entity, ImageSource, InteractiveElement,
-    IntoElement, ParentElement, Render, StatefulInteractiveElement, Styled, WeakEntity, Window,
-    div, img, prelude::FluentBuilder, px,
+    AnyWindowHandle, App, AppContext, AsyncApp, ClickEvent, Context, Entity, ImageSource,
+    InteractiveElement, IntoElement, ParentElement, Render, StatefulInteractiveElement, Styled,
+    WeakEntity, Window, div, img, prelude::FluentBuilder, px,
 };
 use gpui_component::{
     Icon, IconName, Root, Sizable, StyledExt, WindowExt,
@@ -18,10 +18,7 @@ use gpui_component::{
     scroll::ScrollableElement,
 };
 use rustipelago_bridge::messages::{MessageToBackend, MessageToFrontend};
-use rustipelago_schema::{
-    archipelago::{ApCard, CardType},
-    cards::DefaultCards,
-};
+use rustipelago_schema::archipelago::{ApCard, CardType, DefaultCards};
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::{Receiver, Sender};
 use strum::IntoEnumIterator;
@@ -117,6 +114,9 @@ impl Home {
                             DefaultCards::InstallApWorld => {
                                 _ = this.update(cx, |this, cx| Installer::open_window(cx));
                             }
+                            DefaultCards::EditApWorld => {
+                                _ = this.update(cx, |this, cx| CardManager::open_window(cx));
+                            }
                             DefaultCards::SlotManager => todo!(),
                         },
                     },
@@ -129,6 +129,7 @@ impl Home {
         println!("sending update check");
         let _ = backend_sender.send(MessageToBackend::CheckLauncherUpdate);
         println!("update check sent");
+        // also load the cards.
         let _ = backend_sender.send(MessageToBackend::FetchCards);
 
         Self {
@@ -269,7 +270,19 @@ impl Render for Home {
                                                 .as_ref()
                                                 .is_none_or(|filter| &card.card_type == filter)
                                     })
-                                    .map(|card| render_card(card, view_mode, cx)),
+                                    .map(|card| {
+                                        let c = card.clone();
+                                        render_card(
+                                            card,
+                                            view_mode,
+                                            cx,
+                                            cx.listener(move |this, _, _, _| {
+                                                let _ = this.backend_sender.send(
+                                                    MessageToBackend::OpenCard { card: c.clone() },
+                                                );
+                                            }),
+                                        )
+                                    }),
                             )
                             .items_center()
                             .overflow_scroll()
@@ -282,9 +295,14 @@ impl Render for Home {
     }
 }
 
-fn render_card(card: &ApCard, view_mode: &ViewMode, cx: &Context<Home>) -> impl IntoElement {
+/// Special function for rendering a card split out so it's more versatile.
+pub(crate) fn render_card(
+    card: &ApCard,
+    view_mode: &ViewMode,
+    cx: &Context<Home>,
+    callback: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+) -> impl IntoElement {
     let name = card.name.clone();
-    let card_clone = card.to_owned();
     Button::new(format!("ap-world-{}", name))
         .when(*view_mode == ViewMode::Grid, |this| this.size_40())
         .when(*view_mode == ViewMode::List, |this| this.h_40().w_full())
@@ -324,10 +342,5 @@ fn render_card(card: &ApCard, view_mode: &ViewMode, cx: &Context<Home>) -> impl 
             !card.description.is_empty() && *view_mode == ViewMode::Grid,
             |this| this.tooltip(card.description.clone()),
         )
-        .on_click(cx.listener(move |this, _, _, _| {
-            let card = card_clone.clone();
-            let _ = this
-                .backend_sender
-                .send(MessageToBackend::OpenCard { card });
-        }))
+        .on_click(callback)
 }

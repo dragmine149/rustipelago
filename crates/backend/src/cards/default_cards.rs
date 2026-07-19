@@ -3,12 +3,9 @@
 //!
 //! Additionally, in order to update these cards, the whole application needs to be updated.
 
-use rustipelago_schema::{
-    archipelago::{ApCard, CardType},
-    cards::DefaultCards,
-};
+use rustipelago_schema::archipelago::{ApCard, CardType, DefaultCards};
 
-pub(crate) fn get_default_cards() -> [ApCard; 2] {
+pub(crate) fn get_default_cards() -> [ApCard; 3] {
     [
         ApCard {
             icon: None,
@@ -16,6 +13,13 @@ pub(crate) fn get_default_cards() -> [ApCard; 2] {
             description:
                 "Install an APWorld to play games not included with archipelago by default."
                     .to_string(),
+            python: false,
+            card_type: CardType::Tool,
+        },
+        ApCard {
+            icon: None,
+            name: String::from(DefaultCards::EditApWorld),
+            description: "Edit an APWorld locally installed".to_string(),
             python: false,
             card_type: CardType::Tool,
         },

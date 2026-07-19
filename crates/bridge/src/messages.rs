@@ -16,4 +16,5 @@ pub enum MessageToBackend {
     CheckLauncherUpdate,
     OpenCard { card: ApCard },
     FetchCards,
+    EditWorld { card: ApCard },
 }

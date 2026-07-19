@@ -9,7 +9,7 @@ use std::{
     env::temp_dir,
     fs::{File, Permissions, create_dir_all, remove_dir_all, set_permissions},
     os::unix::fs::PermissionsExt,
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use walkdir::WalkDir;
@@ -29,6 +29,10 @@ pub fn read(world: PathBuf) -> Option<ApCard> {
 /// Save a folder of the apworld to the file system.
 ///
 /// This is normally a build-from-source option, but as we get worlds via ref we expose this anyway.
+///
+/// # Arguments
+/// - world_dir: The directory of ALL the files of the world.
+/// - dest_dir: The directory of where to store the built world. Doesn't automatically add `.apworld` at the end.
 pub fn write_folder(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()> {
     let zip_file = temp_dir().join(format!(
         "rustipelago/.{}.apworld",
@@ -88,7 +92,7 @@ pub fn write_folder(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()>
 /// Mount the zip file so that we can run the code without issue.
 ///
 /// NOTE: We assume that the user has read/write permissions to their temp dir.
-pub fn mount_world(world: &PathBuf) -> anyhow::Result<PathBuf> {
+pub fn mount_world(world: &PathBuf, editing: bool) -> anyhow::Result<PathBuf> {
     let out_dir = temp_dir().join(format!(
         "rustipelago/.{}{}.apworld",
         rand::rng().sample(rand::distr::Alphabetic) as char,
@@ -155,13 +159,17 @@ pub fn mount_world(world: &PathBuf) -> anyhow::Result<PathBuf> {
                 }
             }
         }
-        // if let Err(e) = set_permissions(&out_path, Permissions::from_mode(0o555)) {
-        //     eprintln!(
-        //         "Error: unable to change permissions of file {i} ({:?}): {e}",
-        //         out_path.display()
-        //     );
-        //     some_files_failed = true;
-        // }
+        // Set the permissions to r-xr-xr-x as we don't really want to write and break stuff.
+        if let Err(e) = set_permissions(
+            &out_path,
+            Permissions::from_mode(if editing { 0o700 } else { 0o500 }),
+        ) {
+            eprintln!(
+                "Error: unable to change permissions of file {i} ({:?}): {e}",
+                out_path.display()
+            );
+            some_files_failed = true;
+        }
     }
 
     if some_files_failed {
@@ -172,8 +180,17 @@ pub fn mount_world(world: &PathBuf) -> anyhow::Result<PathBuf> {
     }
 }
 
-pub fn unmount_world(world_mount: &PathBuf) -> Result<(), std::io::Error> {
-    remove_dir_all(world_mount)
+/// Write the apworld back to the file and then remove the evidence.
+pub fn unmount_world(
+    world_dir: &PathBuf,
+    world_mount: &PathBuf,
+    world_name: &String,
+) -> anyhow::Result<()> {
+    write_folder(
+        world_mount.to_owned(),
+        world_dir.join(format!("{}.apworld", world_name)),
+    )?;
+    Ok(remove_dir_all(world_mount)?)
 }
 
 pub fn list_worlds(world_dir: &PathBuf) -> Vec<ApCard> {
