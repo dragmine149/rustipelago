@@ -16,3 +16,4 @@ serde_json.workspace = true
 tokio = "1.52.3"
 walkdir.workspace = true
 zip = "8.6.0"
+semver.workspace = true

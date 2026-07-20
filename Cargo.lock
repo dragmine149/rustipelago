@@ -6104,6 +6104,7 @@ dependencies = [
  "reqwest 0.13.4",
  "rustipelago_bridge",
  "rustipelago_schema",
+ "semver",
  "serde",
  "serde_json",
  "tokio",
@@ -6117,6 +6118,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "rustipelago_schema",
+ "semver",
  "strum 0.28.0",
  "strum_macros 0.28.0",
  "tokio",
@@ -6147,6 +6149,7 @@ dependencies = [
 name = "rustipelago_schema"
 version = "0.1.0"
 dependencies = [
+ "semver",
  "serde",
  "strum 0.28.0",
  "strum_macros 0.28.0",

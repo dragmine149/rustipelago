@@ -109,8 +109,8 @@ impl Home {
                         let _ = this.update(cx, |this, cx| this.cards = cards);
                     }
                     MessageToFrontend::UserInput { card } => match card.python {
-                        true => todo!(),
-                        false => match DefaultCards::try_from(card.name).unwrap() {
+                        Some(_) => todo!(),
+                        None => match DefaultCards::try_from(card.name).unwrap() {
                             DefaultCards::InstallApWorld => {
                                 _ = this.update(cx, |this, cx| Installer::open_window(cx));
                             }

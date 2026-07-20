@@ -1,12 +1,18 @@
+use semver::Version;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use strum_macros::{Display, EnumIter};
 
-#[derive(Debug, Clone, EnumIter, Display, PartialEq, Eq)]
+#[derive(Debug, Clone, EnumIter, Display, PartialEq, Eq, Default)]
 pub enum CardType {
+    /// Defines a world used to communicate with the server.
     Client,
+    /// Defines a world used to modify / generate local files.
     Tool,
+    /// Defines a world which requires adjusting the game itself due to lack of mod support.
     Adjuster,
-    World,
+    /// Anything which doesn't fit into the above.
+    #[default]
     Misc,
 }
 
@@ -16,8 +22,9 @@ pub struct ApCard {
     pub icon: Option<String>,
     pub name: String,
     pub description: String,
-    /// Is this card an installed one or a default one. Installed python ones need to be handled differently.
-    pub python: bool,
+    /// Installed python cards are handled differently.
+    /// If this exists, this is a link to the world itself as that is most likely different from the name.
+    pub python: Option<PathBuf>,
     pub card_type: CardType,
 }
 
@@ -27,7 +34,7 @@ impl Default for ApCard {
             icon: None,
             name: String::from("Unknown card"),
             description: String::default(),
-            python: false,
+            python: None,
             card_type: CardType::Misc,
         }
     }
@@ -80,4 +87,19 @@ impl From<DefaultCards> for String {
         }
         .to_string()
     }
+}
+
+/// `archipelago.json` specs as defined by https://github.com/ArchipelagoMW/Archipelago/blob/main/docs/apworld%20specification.md
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApWorldInfo {
+    /// Minimum version where this world will run. Any version before this won't run this world.
+    pub minimum_ap_version: Option<Version>,
+    /// Maximum version where this world will run. Any version after this won't run this world. (rarley used)
+    pub maximum_ap_version: Option<Version>,
+    /// Internal version of the world itself.
+    pub world_version: Option<Version>,
+    /// Authors who made the world.
+    pub authors: Option<Vec<String>>,
+    /// The game name the world is related to.
+    pub game: String,
 }

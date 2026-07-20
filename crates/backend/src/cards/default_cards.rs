@@ -13,42 +13,22 @@ pub(crate) fn get_default_cards() -> [ApCard; 3] {
             description:
                 "Install an APWorld to play games not included with archipelago by default."
                     .to_string(),
-            python: false,
+            python: None,
             card_type: CardType::Tool,
         },
         ApCard {
             icon: None,
             name: String::from(DefaultCards::EditApWorld),
             description: "Edit an APWorld locally installed".to_string(),
-            python: false,
+            python: None,
             card_type: CardType::Tool,
         },
         ApCard {
             icon: None,
             name: String::from(DefaultCards::SlotManager),
             description: "Manage all of the \"local\" slots. (need better description)".to_string(),
-            python: false,
+            python: None,
             card_type: CardType::Tool,
         },
     ]
-}
-
-pub(crate) fn load_dummy_worlds() -> Vec<ApCard> {
-    [
-        ApCard {
-            icon: None,
-            name: "dummy".to_string(),
-            description: "".to_string(),
-            python: false,
-            card_type: CardType::Client,
-        },
-        ApCard {
-            icon: None,
-            name: "dummy2".to_string(),
-            description: "".to_string(),
-            python: true,
-            card_type: CardType::Client,
-        },
-    ]
-    .to_vec()
 }

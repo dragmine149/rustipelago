@@ -1,13 +1,14 @@
 use crate::{
     apworld::{list_worlds, mount_world, unmount_world},
-    cards::default_cards::{get_default_cards, load_dummy_worlds},
-    update::check_launcher_update,
+    cards::default_cards::get_default_cards,
+    update::get_server_versions,
 };
 use rustipelago_bridge::{
     MessageHandler,
     messages::{MessageToBackend, MessageToFrontend},
 };
 use rustipelago_schema::archipelago::{ApCard, DefaultCards};
+use semver::Version;
 use std::{
     path::PathBuf,
     sync::mpsc::{Receiver, Sender},
@@ -31,10 +32,12 @@ impl MessageHandler<MessageToFrontend, MessageToBackend> for BackendState {
             MessageToBackend::CheckLauncherUpdate => {
                 let sender = this.sender.clone();
                 tokio::spawn(async move {
-                    let update = check_launcher_update().await;
+                    let update = get_server_versions().await;
                     let _ = match update {
                         Ok(version) => sender.send(MessageToFrontend::LauncherUpdate {
-                            new_version: version,
+                            new_version: (Version::parse(env!("CARGO_PKG_VERSION")).unwrap()
+                                != version.launcher)
+                                .then_some(version.launcher),
                         }),
                         Err(error) => sender.send(MessageToFrontend::ReqwestFailed {
                             url: "http://rustipelago.dragmine.me/version.json".to_string(),
@@ -47,10 +50,10 @@ impl MessageHandler<MessageToFrontend, MessageToBackend> for BackendState {
             MessageToBackend::OpenCard { card } => {
                 println!("Opening card {card:?}");
                 match card.python {
-                    true => {
+                    Some(_) => {
                         this.mount_world(&card);
                     }
-                    false => match DefaultCards::try_from(card.name.clone()).unwrap() {
+                    None => match DefaultCards::try_from(card.name.clone()).unwrap() {
                         DefaultCards::InstallApWorld => {
                             _ = this.sender.send(MessageToFrontend::UserInput { card });
                         }
@@ -81,20 +84,23 @@ impl BackendState {
     fn load_cards(&self) {
         let mut cards = vec![];
         cards.extend(get_default_cards());
-        cards.extend(load_dummy_worlds());
         cards.extend(list_worlds(&self.get_world_dir()));
         let _ = self.sender.send(MessageToFrontend::CardsLoaded { cards });
     }
     fn get_world_dir(&self) -> PathBuf {
         self.archipelago_dir.join("worlds")
     }
+    /// Mount a world so that we can run files easier.
+    ///
+    /// TEST: Can we read it mostly from memory?
     fn mount_world(&mut self, card: &ApCard) {
-        let world_file = self.get_world_dir().join(format!("{}.apworld", card.name));
-        let world = match mount_world(&world_file, false) {
+        let path = card.python.as_ref().unwrap();
+        // because we're "mounting" it, we assume its already python.
+        let world = match mount_world(&path, false) {
             Ok(w) => w,
             Err(e) => {
                 _ = self.sender.send(MessageToFrontend::ReadFailed {
-                    path: world_file,
+                    path: path.clone(),
                     error: e,
                 });
                 return;

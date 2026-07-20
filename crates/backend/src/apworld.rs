@@ -4,28 +4,17 @@
 
 use anyhow::anyhow;
 use rand::RngExt;
-use rustipelago_schema::archipelago::{ApCard, CardType};
+use rustipelago_schema::archipelago::{ApCard, ApWorldInfo, CardType};
 use std::{
     env::temp_dir,
     fs::{File, Permissions, create_dir_all, remove_dir_all, set_permissions},
     io::Read,
     os::unix::fs::PermissionsExt,
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use walkdir::WalkDir;
 use zip::{ZipArchive, ZipWriter, result::ZipError, write::SimpleFileOptions};
-
-/// Read the world data from the file system.
-///
-/// If this returns `None` something failed whilst reading the path and hence this world should be treated like it's corrupted.
-pub fn read(world: PathBuf) -> Option<ApCard> {
-    Some(ApCard {
-        name: world.file_stem()?.to_str()?.to_string(),
-        python: true,
-        ..Default::default()
-    })
-}
 
 /// Save a folder of the apworld to the file system.
 ///
@@ -93,9 +82,10 @@ pub fn write_folder(world_dir: PathBuf, dest_dir: PathBuf) -> anyhow::Result<()>
 /// Mount the zip file so that we can run the code without issue.
 ///
 /// NOTE: We assume that the user has read/write permissions to their temp dir.
+/// NOTE: The file passed in `world` does not autoappend `.apworld`
 pub fn mount_world(world: &PathBuf, editing: bool) -> anyhow::Result<PathBuf> {
     let out_dir = temp_dir().join(format!(
-        "rustipelago/.{}{}.apworld",
+        "rustipelago/.{}{}",
         rand::rng().sample(rand::distr::Alphabetic) as char,
         world.file_name().unwrap().display()
     ));
@@ -161,16 +151,16 @@ pub fn mount_world(world: &PathBuf, editing: bool) -> anyhow::Result<PathBuf> {
             }
         }
         // Set the permissions to r-xr-xr-x as we don't really want to write and break stuff.
-        if let Err(e) = set_permissions(
-            &out_path,
-            Permissions::from_mode(if editing { 0o700 } else { 0o500 }),
-        ) {
-            eprintln!(
-                "Error: unable to change permissions of file {i} ({:?}): {e}",
-                out_path.display()
-            );
-            some_files_failed = true;
-        }
+        // if let Err(e) = set_permissions(
+        //     &out_path,
+        //     Permissions::from_mode(if editing { 0o700 } else { 0o500 }),
+        // ) {
+        //     eprintln!(
+        //         "Error: unable to change permissions of file {i} ({:?}): {e}",
+        //         out_path.display()
+        //     );
+        //     some_files_failed = true;
+        // }
     }
 
     if some_files_failed {
@@ -198,56 +188,36 @@ pub fn list_worlds(world_dir: &PathBuf) -> Vec<ApCard> {
     WalkDir::new(world_dir)
         .into_iter()
         .filter_map(|world| world.ok())
-        .map(|world| {
-            println!("Attempting to read: {:?}", world.path().display());
-            let mut archive = match File::open(world.path())
-                .map_err(ZipError::from)
-                .and_then(ZipArchive::new)
-            {
-                Ok(archive) => archive,
-                Err(e) => {
-                    eprintln!(
-                        "Error: unable to open archive {:?}: {e}",
-                        world.path().display()
-                    );
-                    return world;
-                }
-            };
-            let name = world
-                .file_name()
-                .to_str()
-                .unwrap()
-                .split_once(".")
-                .unwrap()
-                .0;
-            println!("{name}");
-            println!("Archive: {:?}", archive.file_names().collect::<Vec<&str>>());
-            println!(
-                "{:?}",
-                archive
-                    .by_name(&format!("{name}/__init__.py"))
-                    .and_then(|mut file| {
-                        let mut buf = String::new();
-                        _ = file.read_to_string(&mut buf);
-                        Ok(buf)
-                    })
-            );
-
-            world
-        })
-        .map(|world| world.file_name().to_str().unwrap().to_owned())
-        .filter(|world| {
-            PathBuf::from(world)
-                .extension()
-                .and_then(|ext| (ext == "apworld").then(|| true))
-                .is_some()
-        })
-        .map(|world| ApCard {
-            icon: None,
-            name: world.strip_suffix(".apworld").unwrap().to_string(),
-            description: String::default(),
-            python: true,
-            card_type: CardType::Misc,
-        })
+        .filter_map(|world| apcard_from_data(world.path()).ok())
         .collect()
+}
+
+/// Read the world data from the file system.
+///
+/// If this returns `None` something failed whilst reading the path and hence this world should be treated like it's corrupted.
+pub fn read_ap_data<P>(world: P) -> anyhow::Result<ApWorldInfo>
+where
+    P: AsRef<Path>,
+{
+    Ok(serde_json::from_reader(
+        ZipArchive::new(File::open(&world)?)?.by_name(&format!(
+            "{}/archipelago.json",
+            world.as_ref().file_stem().unwrap().display()
+        ))?,
+    )?)
+}
+
+pub fn apcard_from_data<P>(world: P) -> anyhow::Result<ApCard>
+where
+    P: AsRef<Path>,
+{
+    let data = read_ap_data(&world)?;
+    Ok(ApCard {
+        icon: None,
+        name: data.game,
+        python: Some(world.as_ref().to_path_buf()),
+        // TODO: Read this from __init__.py
+        card_type: CardType::Misc,
+        ..Default::default()
+    })
 }
